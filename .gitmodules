@@ -1,0 +1,8 @@
+[submodule "packages/s2gos-generator"]
+	path = packages/s2gos-generator
+	url = git@github.com:mga-97/s2gos-generator.git
+	branch = dev
+[submodule "packages/s2gos-simulator"]
+	path = packages/s2gos-simulator
+	url = git@github.com:mga-97/s2gos-simulator.git
+	branch = dev
