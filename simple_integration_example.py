@@ -3,14 +3,17 @@
 
 from pathlib import Path
 from s2gos_generator.core import SceneGenerationConfig, SceneGenerationPipeline
-from s2gos_simulator import create_default_render_config, EradiateSimulator, ERADIATE_AVAILABLE
+from s2gos_simulator import (
+    create_default_render_config, EradiateSimulator, ERADIATE_AVAILABLE,
+    PerspectiveSensor, DistantMeasure, MultiDistantMeasure, 
+    srf_rgb, srf_visible, srf_multispectral, srf_dataset,
+    DirectionalIllumination, SimulationConfig
+)
 
 # Available background material options:
 # Vegetation: "treecover", "shrubland", "grassland", "cropland", "mangroves", "wetland"
 # Non-vegetation: "concrete", "baresoil", "snow", "moss", "water"
-# 
-# Each material has physically-accurate spectral properties for realistic radiative transfer
-BACKGROUND_MATERIAL = "water"  # Change this to customize background surface material
+BACKGROUND_MATERIAL = "water"
 
 
 def simple_integration_example():
@@ -24,12 +27,10 @@ def simple_integration_example():
     print("Step 1: Generating scene...")
     
     config = SceneGenerationConfig(
-        # Geographic area specification
         center_lat=27.978497,
         center_lon=-15.590282,
         aoi_size_km=10.0,
         
-        # Data paths - update these to match your system
         dem_index_path=Path("/home/gonzalezm/s2gos/s2gos/packages/s2gos-generator/src/s2gos_generator/data/dem_index.feather"),
         dem_root_dir=Path("/media/DATA/DEM"),
         landcover_index_path=Path("/home/gonzalezm/s2gos/s2gos/packages/s2gos-generator/src/s2gos_generator/data/landcover_index.feather"), 
@@ -37,50 +38,87 @@ def simple_integration_example():
         
         output_dir=Path("./simple_integration_output"),
         scene_name="simple_integration_scene",
-        target_resolution_m=30.0,    # High resolution for target area
-        
-        # Buffer area configuration - creates larger context around target
+        target_resolution_m=30.0,    
         enable_buffer=True,
-        buffer_size_km=60.0,         # Total buffer area: 50km x 50km (extends 20km in each direction from 10km target)
-        buffer_resolution_m=100.0,   # Lower resolution for buffer to keep manageable file sizes
+        buffer_size_km=60.0,
+        buffer_resolution_m=100.0,
         
-        # Background surface configuration
-        background_elevation=0.0,    # Sea level for ocean background (meters above sea level)
-        background_material=BACKGROUND_MATERIAL,  # Material type for background surface
+        background_elevation=0.0,
+        background_material=BACKGROUND_MATERIAL,
     )
     
     try:
         pipeline = SceneGenerationPipeline(config)
         scene_config = pipeline.run_full_pipeline()
         
-        print(f"✓ Scene generated: {scene_config.name}")
-        print(f"  Location: {scene_config.metadata.center_lat}, {scene_config.metadata.center_lon}")
-        print(f"  Target area: {config.aoi_size_km}km x {config.aoi_size_km}km at {config.target_resolution_m}m resolution")
-        print(f"  Buffer area: {config.buffer_size_km}km x {config.buffer_size_km}km at {config.buffer_resolution_m}m resolution")
+        print(f"Scene generated: {scene_config.name}")
+        print(f"Location: {scene_config.metadata.center_lat}, {scene_config.metadata.center_lon}")
+        print(f"Target area: {config.aoi_size_km}km x {config.aoi_size_km}km at {config.target_resolution_m}m resolution")
+        print(f"Buffer area: {config.buffer_size_km}km x {config.buffer_size_km}km at {config.buffer_resolution_m}m resolution")
         if scene_config.background:
             print(f"  Background: {scene_config.background.get('material', 'N/A')} at {scene_config.background.get('elevation', 'N/A')}m elevation")
         print(f"  Assets: {pipeline.output_dir}")
         
     except Exception as e:
-        print(f"✗ Scene generation failed: {e}")
+        print(f"Scene generation failed: {e}")
         print("Check data paths and ensure required files are accessible")
         return False
     
-    # Step 2: Configure Simulation
-    print("\nStep 2: Configuring simulation...")
+    # Step 2: Configure Simulation with Enhanced Sensors
+    print("\nStep 2: Configuring simulation with enhanced sensors...")
     
-    render_config = create_default_render_config(
-        name="simple_integration",
-        sensor_height=50000.0,  # 50km altitude
-        sensor_resolution=[1024, 1024],
-        spp=32,
-        zenith=30.0,
-        azimuth=180.0
+    # Create different sensor types with different SRF configurations
+    sensors = [
+        # Perspective camera with RGB bands
+        PerspectiveSensor(
+            id="rgb_camera",
+            origin=[0, 0, 50000],  # 50km altitude
+            target=[0, 0, 0],
+            resolution=[1024, 1024],
+            srf=srf_rgb(),  # RGB delta SRF
+            spp=32
+        ),
+        
+        # Distant measurement with visible spectrum
+        DistantMeasure.from_angles(
+            id="visible_distant",
+            zenith=15.0,
+            azimuth=45.0,
+            srf=srf_rgb(),  # Uniform SRF 400-700nm
+            spp=64
+        ),
+        
+        # Multi-angle measurement for BRDF with custom bands
+        MultiDistantMeasure.hplane(
+            zeniths=[0, 15, 30, 45],  # Multiple viewing angles
+            azimuth=0.0,              # Principal plane
+            id="brdf_measurement",
+            srf=srf_multispectral([443, 550, 670, 865]),  # Blue, Green, Red, NIR
+            spp=128
+        ),
+        
+        # # Dataset SRF example (Sentinel-2A MSI band 4)
+        # DistantMeasure.from_angles(
+        #     id="sentinel2_band",
+        #     zenith=0.0,  # Nadir
+        #     azimuth=0.0,
+        #     srf="sentinel_2a-msi-4",  # Dataset SRF as string
+        #     spp=64
+        # )
+    ]
+    
+    # Create custom render configuration
+    render_config = SimulationConfig(
+        name="enhanced_simulation",
+        illumination=DirectionalIllumination(zenith=30.0, azimuth=180.0),
+        sensors=sensors
     )
     
-    print(f"✓ Simulation configured: {render_config.name}")
-    print(f"  Camera height: {render_config.sensors[0].origin[2]/1000:.1f}km")
-    print(f"  Resolution: {render_config.sensors[0].resolution}")
+    print(f"Simulation configured: {render_config.name}")
+    print(f"Number of sensors: {len(render_config.sensors)}")
+    for i, sensor in enumerate(render_config.sensors):
+        srf_info = "dict" if isinstance(sensor.srf, dict) else "string" if isinstance(sensor.srf, str) else "unknown"
+        print(f"  {i+1}. {sensor.id} ({sensor.type}) - SRF: {srf_info}")
     
     # Step 3: Run Simulation
     if ERADIATE_AVAILABLE:
@@ -96,7 +134,7 @@ def simple_integration_example():
                 print(f"  RGB image: {results['rgb_image']}")
                 print(f"  Output: {results['output_dir']}")
             else:
-                print(f"✗ Simulation failed: {results['error']}")
+                print(f"Simulation failed: {results['error']}")
                 return False
                 
         except Exception as e:
