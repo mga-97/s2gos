@@ -1,245 +1,232 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from s2gos_generator.core import SceneGenerationConfig, SceneGenerationPipeline
-from s2gos_simulator.config_v2 import (
+from s2gos_generator.core import SceneGenerationPipeline
+from s2gos_generator.core.config import (
+    SceneConfig, create_scene_config, BackgroundMaterial, 
+    create_clear_atmosphere, create_maritime_atmosphere, create_hazy_atmosphere
+)
+from s2gos_simulator.config import (
     SimulationConfig, SatelliteSensor, UAVSensor, GroundSensor,
     DirectionalIllumination, AngularViewing, LookAtViewing, AngularFromOriginViewing,
     SpectralResponse, UAVInstrumentType, GroundInstrumentType
 )
-from s2gos_simulator.backends.eradiate_backend_v2 import EradiateBackendV2, ERADIATE_AVAILABLE
+from s2gos_simulator.backends.eradiate_backend import EradiateBackend, ERADIATE_AVAILABLE
 import json
 
-# Available background material options:
-# Vegetation: "treecover", "shrubland", "grassland", "cropland", "mangroves", "wetland"
-# Non-vegetation: "concrete", "baresoil", "snow", "moss", "water"
-BACKGROUND_MATERIAL = "water"
 
-
-def simple_integration_example():
-    """Demonstrate clean S2GOS integration: generate scene → run simulation."""
-    print("S2GOS Simple Integration Example")
-    print("=" * 40)
-    print("Clean workflow: Scene Generation → Simulation")
-    print()
+def scene_configuration():
+    print("Formal Configuration Demonstration")
+    print("-" * 50)
     
-    # Step 1: Generate Scene
-    print("Step 1: Generating scene...")
-    
-    config = SceneGenerationConfig(
+    # Create basic configuration
+    config = create_scene_config(
+        scene_name="monaco_coastal_scene",
         center_lat=43.7102,
         center_lon=7.2620,
         aoi_size_km=10.0,
-        
         dem_index_path=Path("/home/gonzalezm/s2gos/s2gos/packages/s2gos-generator/src/s2gos_generator/data/dem_index.feather"),
         dem_root_dir=Path("/media/DATA/DEM"),
         landcover_index_path=Path("/home/gonzalezm/s2gos/s2gos/packages/s2gos-generator/src/s2gos_generator/data/landcover_index.feather"), 
         landcover_root_dir=Path("/home/gonzalezm/Data"),
-        
         output_dir=Path("./simple_integration_output"),
-        scene_name="simple_integration_scene",
-        target_resolution_m=30.0,    
-        enable_buffer=True,
+        target_resolution_m=30.0,
+        description="Coastal scene around Monaco with formal configuration"
+    )
+    
+    print("Basic configuration created")
+    
+    # Enable buffer/background system
+    config.enable_buffer_system(
         buffer_size_km=60.0,
         buffer_resolution_m=100.0,
-        
-        background_elevation=0.0,
-        background_material=BACKGROUND_MATERIAL,
+        background_material=BackgroundMaterial.WATER,
+        background_elevation=0.0
     )
+    print("✓ Buffer/background system enabled")
+    
+    # Demonstrate different atmosphere configurations
+    atmospheres = {
+        "clear": create_clear_atmosphere(),
+        "maritime": create_maritime_atmosphere(), 
+        "hazy": create_hazy_atmosphere()
+    }
+    
+    print("✓ Atmosphere configurations available:")
+    for name, atm in atmospheres.items():
+        print(f"  - {name}: AOT={atm.aerosol_ot}, Dataset={atm.aerosol_ds.value}")
+    
+    # Use maritime atmosphere for coastal scene
+    config.atmosphere = atmospheres["maritime"]
+    
+    # Validate configuration
+    errors = config.validate_configuration()
+    if errors:
+        print(f"Configuration errors: {errors}")
+        return None
+    else:
+        print("Configuration validation passed")
+    
+    return config
+
+
+def simple_integration_example():
+    """Demonstrate complete S2GOS integration with configuration."""
+    print("S2GOS Integration Example")
+    print("=" * 60)
+    print()
+    
+    # Step 1: Create and validate configuration
+    print("Step 1: Creating scene configuration...")
+    config = scene_configuration()
+    if not config:
+        return False
+    
+    # Display configuration summary
+    print(f"\nConfiguration Summary:")
+    print(f"  Scene: {config.scene_name}")
+    print(f"  Location: {config.location.center_lat:.4f}°, {config.location.center_lon:.4f}°")
+    print(f"  AOI: {config.location.aoi_size_km} km²")
+    print(f"  Resolution: {config.processing.target_resolution_m} m")
+    print(f"  Buffer: {config.buffer.buffer_size_km} km at {config.buffer.buffer_resolution_m} m resolution")
+    print(f"  Background: {config.buffer.background_material.value} at {config.buffer.background_elevation} m")
+    print(f"  Atmosphere: {config.atmosphere.aerosol_ds.value} (AOT: {config.atmosphere.aerosol_ot})")
+    
+    # Save configuration for reference
+    config.to_yaml(Path("./scene_config.yaml"))
+    config.to_json(Path("./scene_config.json"))
+    print(f"  Saved: scene_config.yaml/.json")
+    
+    # Step 2: Generate scene using configuration
+    print(f"\nStep 2: Generating scene with configuration...")
     
     try:
         pipeline = SceneGenerationPipeline(config)
-        scene_config = pipeline.run_full_pipeline()
+        scene_description = pipeline.run_full_pipeline()
         
-        print(f"Scene generated: {scene_config.name}")
-        print(f"Location: {scene_config.metadata.center_lat}, {scene_config.metadata.center_lon}")
-        print(f"Target area: {config.aoi_size_km}km x {config.aoi_size_km}km at {config.target_resolution_m}m resolution")
-        print(f"Buffer area: {config.buffer_size_km}km x {config.buffer_size_km}km at {config.buffer_resolution_m}m resolution")
-        if scene_config.background:
-            print(f"  Background: {scene_config.background.get('material', 'N/A')} at {scene_config.background.get('elevation', 'N/A')}m elevation")
-        print(f"  Assets: {pipeline.output_dir}")
+        print(f"Scene generated successfully!")
+        print(f" Location: {config.location.center_lat}, {config.location.center_lon}")
+        print(f" Target: {config.location.aoi_size_km}km² at {config.processing.target_resolution_m}m")
+        if config.has_buffer:
+            print(f"  Buffer: {config.buffer.buffer_size_km}km² at {config.buffer.buffer_resolution_m}m")
+            print(f"  Background: {config.buffer.background_material.value}")
+        print(f"  Output: {config.scene_output_dir}")
         
     except Exception as e:
         print(f"Scene generation failed: {e}")
-        print("Check data paths and ensure required files are accessible")
-        return False
+        scene_description = None
     
-    # Step 2: Configure Simulation with Enhanced Sensors
-    print("\nStep 2: Configuring simulation with enhanced sensors...")
+    # Step 3: Configure simulation with enhanced sensors
+    print(f"\nStep 3: Configuring simulation...")
     
-    # Create different sensor types using the new config system
+    # Create diverse sensor suite
     sensors = [
-        # UAV perspective camera with RGB bands
+        # UAV RGB camera
         UAVSensor(
             id="uav_rgb_camera",
             instrument=UAVInstrumentType.PERSPECTIVE_CAMERA,
-            position=[0, 0, 10000],  # 100m altitude
             viewing=LookAtViewing(
-                origin=[0, 0, 10000],
+                origin=[0, 0, 10000],  # 100m altitude
                 target=[0, 0, 0],
-                up=[0,1,0]
+                up=[0, 1, 0]
             ),
-            srf=SpectralResponse(
-                type="delta",
-                wavelengths=[440.0, 550.0, 660.0]
-            ),
+            srf=SpectralResponse(type="delta", wavelengths=[440.0, 550.0, 660.0]),
             fov=70.0,
             resolution=[1024, 1024],
             samples_per_pixel=32
         ),
         
-        # SatelliteSensor(
-        #     id="satellite_visible", 
-        #     platform="sentinel-2a",
-        #     instrument="msi",
-        #     band="4",
-        #     viewing=AngularViewing(
-        #         zenith=15.0,
-        #         azimuth=45.0,
-        #         target=[0, 0, 0]
-        #     ),
-        #     samples_per_pixel=4
-        # ),
-
+        # Custom satellite sensor
         SatelliteSensor(
-            id="custom_sat", 
+            id="custom_satellite", 
             platform="custom",
             instrument="custom",
-            band="custom",
-            viewing=AngularViewing(
-                zenith=15.0,
-                azimuth=45.0,
-                target=[0, 0, 0]
-            ),
-            srf=SpectralResponse(
-                type="delta",
-                wavelengths=[440.0]
-            ),
-            samples_per_pixel=4
+            band="red",
+            viewing=AngularViewing(zenith=15.0, azimuth=45.0, target=[0, 0, 0]),
+            srf=SpectralResponse(type="delta", wavelengths=[660.0]),
+            samples_per_pixel=64
         ),
-
-        # # Satellite sensor with visible spectrum
-        # SatelliteSensor(
-        #     id="satellite_visible", 
-        #     platform="Sentinel-2A",
-        #     instrument="MSI",
-        #     band="4",
-        #     viewing=AngularViewing(
-        #         zenith=15.0,
-        #         azimuth=45.0,
-        #         target=[0, 0, 0]
-        #     ),
-        #     samples_per_pixel=4
-        # ),
         
-        # # Multiple satellite sensors for BRDF measurement
-        # SatelliteSensor(
-        #     id="satellite_nadir",
-        #     platform="Sentinel-2A", 
-        #     instrument="MSI",
-        #     band="4",
-        #     viewing=AngularViewing(zenith=0.0, azimuth=0.0),
-        #     samples_per_pixel=16
-        # ),
-        
-        # SatelliteSensor(
-        #     id="satellite_oblique_15",
-        #     platform="Sentinel-2A",
-        #     instrument="MSI", 
-        #     band="4",
-        #     viewing=AngularViewing(zenith=15.0, azimuth=0.0),
-        #     samples_per_pixel=128
-        # ),
-        
-        # SatelliteSensor(
-        #     id="satellite_oblique_30",
-        #     platform="Sentinel-2A",
-        #     instrument="MSI",
-        #     band="4", 
-        #     viewing=AngularViewing(zenith=30.0, azimuth=0.0),
-        #     samples_per_pixel=128
-        # ),
-        
-        # Ground-based HYPSTAR sensor
+        # Ground-based sensor
         GroundSensor(
             id="ground_hypstar",
             instrument=GroundInstrumentType.HYPSTAR,
             viewing=AngularFromOriginViewing(
-                zenith=0.0,  # Looking up at nadir
+                origin=[0, 0, 2],
+                zenith=0.0,  # Looking nadir
                 azimuth=0.0,
-                origin=[0, 0, 2]  # Looking at point 100m above
             ),
-            srf=SpectralResponse(
-                type="delta",
-                wavelengths=[440.0]
-            ),
+            srf=SpectralResponse(type="delta", wavelengths=[660.0]),
             samples_per_pixel=64
         )
     ]
     
-    schema = SimulationConfig.model_json_schema()
-    
-    # Write the schema to the specified output file
-    with open('./schema.json', 'w') as f:
-        json.dump(schema, f, indent=2)
-    
     # Create simulation configuration
-    experiment_config = SimulationConfig(
-        name="enhanced_sensors_simulation",
-        description="Enhanced sensor configuration with UAV, satellite, and ground sensors",
+    simulation_config = SimulationConfig(
+        name="config_simulation",
+        description="Simulation using scene configuration",
         illumination=DirectionalIllumination(zenith=30.0, azimuth=180.0),
         sensors=sensors
     )
-
-    experiment_config.to_json("./config_test")
     
-    print(f"Simulation configured: {experiment_config.name}")
-    print(f"Number of sensors: {len(experiment_config.sensors)}")
-    for i, sensor in enumerate(experiment_config.sensors):
-        platform_type = sensor.platform_type.value
-        if hasattr(sensor, 'instrument'):
-            instrument = sensor.instrument.value if hasattr(sensor.instrument, 'value') else str(sensor.instrument)
-        else:
-            instrument = "N/A"
-        srf_info = "SpectralResponse" if isinstance(sensor.srf, SpectralResponse) else "string" if isinstance(sensor.srf, str) else "None"
-        print(f"  {i+1}. {sensor.id} ({platform_type}/{instrument}) - SRF: {srf_info}")
+    print(f"Simulation configured:")
+    print(f"  Sensors: {len(simulation_config.sensors)}")
+    for i, sensor in enumerate(simulation_config.sensors):
+        platform = sensor.platform_type.value
+        instrument = getattr(sensor, 'instrument', 'N/A')
+        if hasattr(instrument, 'value'):
+            instrument = instrument.value
+        print(f"    {i+1}. {sensor.id} ({platform}/{instrument})")
     
-    # Step 3: Run Simulation
-    if ERADIATE_AVAILABLE:
-        print("\nStep 3: Running Eradiate simulation...")
+    # Save simulation configuration
+    simulation_config.to_json(Path("./simulation_config.json"))
+    print(f"  Saved: simulation_config.json")
+    
+    # Generate schema for reference
+    schema = SimulationConfig.model_json_schema()
+    with open('./simulation_schema.json', 'w') as f:
+        json.dump(schema, f, indent=2)
+    print(f"  Schema: simulation_schema.json")
+    
+    # Step 4: Run simulation (if available)
+    if ERADIATE_AVAILABLE and scene_description:
+        print(f"\nStep 4: Running simulation...")
         
         try:
-            simulator = EradiateBackendV2(experiment_config)
-            dataset = simulator.run_simulation(scene_config, pipeline.output_dir, plot_image=True, id_to_plot="uav_rgb_camera")
+            simulator = EradiateBackend(simulation_config)
+            dataset = simulator.run_simulation(
+                scene_description, 
+                config.scene_output_dir, 
+                plot_image=True, 
+                id_to_plot="uav_rgb_camera"
+            )
+            print("Simulation completed successfully!")
             
-            print("Simulation complete!")
-                
         except Exception as e:
             print(f"Simulation failed: {e}")
             return False
     else:
-        print("\nStep 3: Skipping simulation (Eradiate not available)")
-        print("Install Eradiate to run simulations: pip install eradiate[kernel]")
+        print(f"\nStep 4: Simulation skipped")
+        if not ERADIATE_AVAILABLE:
+            print("  Eradiate not available")
+        if not scene_description:
+            print("  Scene generation failed")
     
-    print("\n" + "=" * 40)
-    print("Integration example complete!")
-    print(f"Output directory: {pipeline.output_dir}")
-    print(f"Scene configuration: {pipeline.output_dir / f'{scene_config.name}.yml'}")
-    print("\nScene Summary:")
-    print(f"  • Target: {config.aoi_size_km}km x {config.aoi_size_km}km @ {config.target_resolution_m}m")
-    print(f"  • Buffer: {config.buffer_size_km}km x {config.buffer_size_km}km @ {config.buffer_resolution_m}m")
-    print(f"  • Background: {config.background_material} @ {config.background_elevation}m elevation")
+    # Summary
+    print(f"\n" + "=" * 60)
+    print("Integration Example Complete!")
+    print(f"Output directory: {config.scene_output_dir}")
     
     return True
 
 
 if __name__ == "__main__":
-    print("S2GOS Simple Integration - Clean Workflow Demo")
-    print("Demonstrates the refactored architecture:")
-    print("  s2gos-generator: Scene generation")
-    print("  s2gos-simulator: Simulation configuration and execution")
+    print("S2GOS Integration Demo")
     print()
     
     success = simple_integration_example()
     
-    if not success:
-        print("\n✗ Example failed - check dependencies and data paths")
+    if success:
+        print("\nDemo completed successfully!")
+    else:
+        print("\nDemo encountered issues")
+        print("Check dependencies and data paths")
