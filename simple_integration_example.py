@@ -2,13 +2,14 @@
 from pathlib import Path
 from s2gos_generator.core import SceneGenerationPipeline
 from s2gos_generator.core.config import (
-    SceneConfig, create_scene_config, BackgroundMaterial, 
+    SceneGenConfig, create_scene_config, BackgroundMaterial, 
     create_clear_atmosphere, create_maritime_atmosphere, create_hazy_atmosphere
 )
 from s2gos_simulator.config import (
     SimulationConfig, SatelliteSensor, UAVSensor, GroundSensor,
     DirectionalIllumination, AngularViewing, LookAtViewing, AngularFromOriginViewing,
-    SpectralResponse, UAVInstrumentType, GroundInstrumentType
+    SpectralResponse, UAVInstrumentType, GroundInstrumentType, RadiativeQuantityConfig,
+    MeasurementType
 )
 from s2gos_simulator.backends.eradiate_backend import EradiateBackend, ERADIATE_AVAILABLE
 import json
@@ -92,7 +93,6 @@ def simple_integration_example():
     print(f"  Atmosphere: {config.atmosphere.aerosol_ds.value} (AOT: {config.atmosphere.aerosol_ot})")
     
     # Save configuration for reference
-    config.to_yaml(Path("./scene_config.yaml"))
     config.to_json(Path("./scene_config.json"))
     print(f"  Saved: scene_config.yaml/.json")
     
@@ -160,12 +160,22 @@ def simple_integration_example():
         )
     ]
     
-    # Create simulation configuration
+    radiative_quantities = [
+        RadiativeQuantityConfig(
+            quantity=MeasurementType.BRF,
+            wavelengths=[550.0, 660.0],
+            viewing_zenith=0.0,
+            viewing_azimuth=0.0,
+            samples_per_pixel=64
+        )
+    ]
+    
     simulation_config = SimulationConfig(
         name="config_simulation",
-        description="Simulation using scene configuration",
+        description="Simulation using scene configuration with both sensors and radiative quantities",
         illumination=DirectionalIllumination(zenith=30.0, azimuth=180.0),
-        sensors=sensors
+        sensors=sensors,
+        radiative_quantities=radiative_quantities
     )
     
     print(f"Simulation configured:")
@@ -176,6 +186,11 @@ def simple_integration_example():
         if hasattr(instrument, 'value'):
             instrument = instrument.value
         print(f"    {i+1}. {sensor.id} ({platform}/{instrument})")
+    
+    print(f"  Radiative quantities: {len(simulation_config.radiative_quantities)}")
+    for i, rq in enumerate(simulation_config.radiative_quantities):
+        wl_info = rq.wavelengths if rq.wavelengths else f"range {rq.wavelength_range}"
+        print(f"    {i+1}. {rq.quantity.value.upper()}: {wl_info} (TODO: placeholder)")
     
     # Save simulation configuration
     simulation_config.to_json(Path("./simulation_config.json"))
