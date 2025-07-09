@@ -1,0 +1,54 @@
+{
+  "scene_name": "pisa_scene",
+  "description": "Scene around Pisa",
+  "location": {
+    "center_lat": 43.732,
+    "center_lon": 10.35,
+    "aoi_size_km": 10.0
+  },
+  "data_sources": {
+    "dem_index_path": "/home/gonzalezm/s2gos/s2gos/packages/s2gos-generator/src/s2gos_generator/data/dem_index.feather",
+    "dem_root_dir": "/media/DATA/DEM",
+    "landcover_index_path": "/home/gonzalezm/s2gos/s2gos/packages/s2gos-generator/src/s2gos_generator/data/landcover_index.feather",
+    "landcover_root_dir": "/home/gonzalezm/Data",
+    "material_config_path": "/home/gonzalezm/s2gos/s2gos/packages/s2gos-generator/src/s2gos_generator/data/materials.json"
+  },
+  "output_dir": "simple_integration_output",
+  "processing": {
+    "target_resolution_m": 30.0,
+    "generate_texture_preview": true,
+    "handle_dem_nans": true,
+    "dem_fillna_value": 0.0
+  },
+  "atmosphere": {
+    "type": "molecular",
+    "boa": 0.0,
+    "toa": 40000.0,
+    "molecular": {
+      "thermoprops": {
+        "identifier": "afgl_1986-us_standard",
+        "altitude_min": 0.0,
+        "altitude_max": 120000.0,
+        "altitude_step": 1000.0,
+        "constituent_scaling": {
+          "CO2": 420.0
+        }
+      },
+      "absorption_database": "gecko",
+      "has_absorption": true,
+      "has_scattering": true
+    },
+    "homogeneous": null,
+    "heterogeneous": null
+  },
+  "buffer": {
+    "enabled": true,
+    "buffer_size_km": 60.0,
+    "buffer_resolution_m": 100.0,
+    "background_material": "water",
+    "background_elevation": 0.0,
+    "background_size_km": 100.0,
+    "background_resolution_m": 200.0
+  },
+  "created_at": "2025-07-09T17:22:21.908013"
+}

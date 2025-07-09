@@ -3,7 +3,9 @@ from pathlib import Path
 from s2gos_generator.core import SceneGenerationPipeline
 from s2gos_generator.core.config import (
     SceneGenConfig, create_scene_config, BackgroundMaterial, 
-    create_clear_atmosphere, create_maritime_atmosphere, create_hazy_atmosphere
+    AtmosphereConfig, AtmosphereType, MolecularAtmosphereConfig, HomogeneousAtmosphereConfig, 
+    HeterogeneousAtmosphereConfig, ThermophysicalConfig, ParticleLayerConfig,
+    AbsorptionDatabase, AerosolDataset, ExponentialDistribution
 )
 from s2gos_simulator.config import (
     SimulationConfig, SatelliteSensor, UAVSensor, GroundSensor,
@@ -16,48 +18,35 @@ import json
 
 
 def scene_configuration():
-    print("Formal Configuration Demonstration")
-    print("-" * 50)
-    
-    # Create basic configuration
+    # Create basic configuration using defaults
     config = create_scene_config(
-        scene_name="monaco_coastal_scene",
-        center_lat=43.7102,
-        center_lon=7.2620,
+        scene_name="pisa_scene",
+        center_lat=43.732,
+        center_lon=10.350,
         aoi_size_km=10.0,
-        dem_index_path=Path("/home/gonzalezm/s2gos/s2gos/packages/s2gos-generator/src/s2gos_generator/data/dem_index.feather"),
-        dem_root_dir=Path("/media/DATA/DEM"),
-        landcover_index_path=Path("/home/gonzalezm/s2gos/s2gos/packages/s2gos-generator/src/s2gos_generator/data/landcover_index.feather"), 
-        landcover_root_dir=Path("/home/gonzalezm/Data"),
         output_dir=Path("./simple_integration_output"),
         target_resolution_m=30.0,
-        description="Coastal scene around Monaco with formal configuration"
+        description="Scene around Pisa"
     )
     
-    print("Basic configuration created")
     
     # Enable buffer/background system
     config.enable_buffer_system(
         buffer_size_km=60.0,
         buffer_resolution_m=100.0,
-        background_material=BackgroundMaterial.WATER,
-        background_elevation=0.0
+        background_elevation=0.0,
+        background_resolution_m=200.0
     )
-    print("✓ Buffer/background system enabled")
     
-    # Demonstrate different atmosphere configurations
-    atmospheres = {
-        "clear": create_clear_atmosphere(),
-        "maritime": create_maritime_atmosphere(), 
-        "hazy": create_hazy_atmosphere()
-    }
+    molecular_config = MolecularAtmosphereConfig(
+        thermoprops=ThermophysicalConfig(
+            identifier="afgl_1986-us_standard",
+        ),
+        absorption_database=AbsorptionDatabase.GECKO
+    )
+    config.set_atmosphere_molecular(molecular_config)
     
-    print("✓ Atmosphere configurations available:")
-    for name, atm in atmospheres.items():
-        print(f"  - {name}: AOT={atm.aerosol_ot}, Dataset={atm.aerosol_ds.value}")
-    
-    # Use maritime atmosphere for coastal scene
-    config.atmosphere = atmospheres["maritime"]
+    print("Basic configuration created")
     
     # Validate configuration
     errors = config.validate_configuration()
@@ -89,14 +78,11 @@ def simple_integration_example():
     print(f"  AOI: {config.location.aoi_size_km} km²")
     print(f"  Resolution: {config.processing.target_resolution_m} m")
     print(f"  Buffer: {config.buffer.buffer_size_km} km at {config.buffer.buffer_resolution_m} m resolution")
-    print(f"  Background: {config.buffer.background_material.value} at {config.buffer.background_elevation} m")
-    print(f"  Atmosphere: {config.atmosphere.aerosol_ds.value} (AOT: {config.atmosphere.aerosol_ot})")
+    print(f"  Background: at {config.buffer.background_elevation} m")
     
-    # Save configuration for reference
-    config.to_json(Path("./scene_config.json"))
-    print(f"  Saved: scene_config.yaml/.json")
+    config.to_json(Path("./scene_gen_config.json"))
+    print(f"  Saved: scene_gen_config.json")
     
-    # Step 2: Generate scene using configuration
     print(f"\nStep 2: Generating scene with configuration...")
     
     try:
@@ -125,7 +111,7 @@ def simple_integration_example():
             id="uav_rgb_camera",
             instrument=UAVInstrumentType.PERSPECTIVE_CAMERA,
             viewing=LookAtViewing(
-                origin=[0, 0, 10000],  # 100m altitude
+                origin=[0, 0, 55000],
                 target=[0, 0, 0],
                 up=[0, 1, 0]
             ),
@@ -163,7 +149,7 @@ def simple_integration_example():
     radiative_quantities = [
         RadiativeQuantityConfig(
             quantity=MeasurementType.BRF,
-            wavelengths=[550.0, 660.0],
+            srf=SpectralResponse(type="delta", wavelengths=[440.0, 550.0, 660.0]),
             viewing_zenith=0.0,
             viewing_azimuth=0.0,
             samples_per_pixel=64
@@ -175,7 +161,12 @@ def simple_integration_example():
         description="Simulation using scene configuration with both sensors and radiative quantities",
         illumination=DirectionalIllumination(zenith=30.0, azimuth=180.0),
         sensors=sensors,
-        radiative_quantities=radiative_quantities
+        radiative_quantities=radiative_quantities,
+        backend_hints={
+            "eradiate": {
+                "mode": "mono"
+            }
+        }
     )
     
     print(f"Simulation configured:")
@@ -188,9 +179,6 @@ def simple_integration_example():
         print(f"    {i+1}. {sensor.id} ({platform}/{instrument})")
     
     print(f"  Radiative quantities: {len(simulation_config.radiative_quantities)}")
-    for i, rq in enumerate(simulation_config.radiative_quantities):
-        wl_info = rq.wavelengths if rq.wavelengths else f"range {rq.wavelength_range}"
-        print(f"    {i+1}. {rq.quantity.value.upper()}: {wl_info} (TODO: placeholder)")
     
     # Save simulation configuration
     simulation_config.to_json(Path("./simulation_config.json"))
