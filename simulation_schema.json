@@ -816,7 +816,7 @@
       "description": "Processing configuration"
     },
     "enable_noise": {
-      "default": true,
+      "default": false,
       "description": "Enable noise modeling",
       "title": "Enable Noise",
       "type": "boolean"

@@ -1,7 +1,7 @@
 {
   "name": "config_simulation",
   "description": "Simulation using scene configuration with both sensors and radiative quantities",
-  "created_at": "2025-07-09T17:22:54.438547",
+  "created_at": "2025-07-14T11:43:40.048860",
   "illumination": {
     "type": "directional",
     "id": "illumination",
@@ -53,96 +53,13 @@
         1024,
         1024
       ]
-    },
-    {
-      "id": "custom_satellite",
-      "platform_type": "satellite",
-      "viewing": {
-        "type": "angular",
-        "zenith": 15.0,
-        "azimuth": 45.0,
-        "target": [
-          0.0,
-          0.0,
-          0.0
-        ]
-      },
-      "srf": {
-        "type": "delta",
-        "wavelengths": [
-          660.0
-        ],
-        "wmin": null,
-        "wmax": null,
-        "dataset_id": null
-      },
-      "produces": [
-        "radiance"
-      ],
-      "samples_per_pixel": 64,
-      "noise_model": null,
-      "platform": "custom",
-      "instrument": "custom",
-      "band": "red"
-    },
-    {
-      "id": "ground_hypstar",
-      "platform_type": "ground",
-      "viewing": {
-        "type": "angular_from_origin",
-        "origin": [
-          0.0,
-          0.0,
-          2.0
-        ],
-        "zenith": 0.0,
-        "azimuth": 0.0,
-        "up": [
-          0.0,
-          0.0,
-          1.0
-        ]
-      },
-      "srf": {
-        "type": "delta",
-        "wavelengths": [
-          660.0
-        ],
-        "wmin": null,
-        "wmax": null,
-        "dataset_id": null
-      },
-      "produces": [
-        "radiance"
-      ],
-      "samples_per_pixel": 64,
-      "noise_model": null,
-      "instrument": "hypstar"
     }
   ],
-  "radiative_quantities": [
-    {
-      "quantity": "brf",
-      "srf": {
-        "type": "delta",
-        "wavelengths": [
-          440.0,
-          550.0,
-          660.0
-        ],
-        "wmin": null,
-        "wmax": null,
-        "dataset_id": null
-      },
-      "viewing_zenith": 0.0,
-      "viewing_azimuth": 0.0,
-      "samples_per_pixel": 64
-    }
-  ],
+  "radiative_quantities": [],
   "processing": {
     "orthorectified": false
   },
-  "enable_noise": true,
+  "enable_noise": false,
   "backend_hints": {
     "eradiate": {
       "mode": "mono"

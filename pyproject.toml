@@ -20,6 +20,7 @@ mkdocs = ">=1.5"
 fsspec = ">=2023.1.0"
 
 [tool.pixi.pypi-dependencies]
+s2gos_utils = { path = "./packages/s2gos-utils", editable = true }
 s2gos_generator = { path = "./packages/s2gos-generator", editable = true }
 s2gos_simulator = { path = "./packages/s2gos-simulator", editable = true }
 

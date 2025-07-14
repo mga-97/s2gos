@@ -2,11 +2,13 @@
 from pathlib import Path
 from s2gos_generator.core import SceneGenerationPipeline
 from s2gos_generator.core.config import (
-    SceneGenConfig, create_scene_config, BackgroundMaterial, 
+    SceneGenConfig, create_scene_config, 
     AtmosphereConfig, AtmosphereType, MolecularAtmosphereConfig, HomogeneousAtmosphereConfig, 
     HeterogeneousAtmosphereConfig, ThermophysicalConfig, ParticleLayerConfig,
     AbsorptionDatabase, AerosolDataset, ExponentialDistribution
 )
+from s2gos_utils.scene.materials.enums import BackgroundMaterial
+from s2gos_utils.io.paths import open_file
 from s2gos_simulator.config import (
     SimulationConfig, SatelliteSensor, UAVSensor, GroundSensor,
     DirectionalIllumination, AngularViewing, LookAtViewing, AngularFromOriginViewing,
@@ -19,16 +21,36 @@ import json
 
 def scene_configuration():
     # Create basic configuration using defaults
+    # config = create_scene_config(
+    #     scene_name="pisa_scene",
+    #     center_lat=43.732,
+    #     center_lon=10.350,
+    #     aoi_size_km=10.0,
+    #     output_dir=Path("./simple_integration_output"),
+    #     target_resolution_m=30.0,
+    #     description="Scene around Pisa"
+    # )
+    
+    # config = create_scene_config(
+    #     scene_name="kairouan_scene",
+    #     center_lat=35.680,
+    #     center_lon=10.200,
+    #     aoi_size_km=10.0,
+    #     output_dir=Path("./simple_integration_output"),
+    #     target_resolution_m=30.0,
+    #     description="Scene around Kairouan"
+    # )
+    
+    
     config = create_scene_config(
-        scene_name="pisa_scene",
-        center_lat=43.732,
-        center_lon=10.350,
+        scene_name="gobabeb_scene",
+        center_lat=-23.6002,
+        center_lon=15.11956,
         aoi_size_km=10.0,
         output_dir=Path("./simple_integration_output"),
         target_resolution_m=30.0,
-        description="Scene around Pisa"
+        description="Scene around Gobabeb"
     )
-    
     
     # Enable buffer/background system
     config.enable_buffer_system(
@@ -42,9 +64,25 @@ def scene_configuration():
         thermoprops=ThermophysicalConfig(
             identifier="afgl_1986-us_standard",
         ),
-        absorption_database=AbsorptionDatabase.GECKO
+        absorption_database=AbsorptionDatabase.GECKO,
+        has_absorption=True,
+        has_scattering=True
     )
-    config.set_atmosphere_molecular(molecular_config)
+    
+    hazy_layer = ParticleLayerConfig(
+        aerosol_dataset=AerosolDataset.SIXSV_CONTINENTAL,
+        optical_thickness=0.3,  # High aerosol for hazy conditions
+        altitude_bottom=0.0,
+        altitude_top=1000.0,
+        distribution=ExponentialDistribution(rate=5.0),
+        reference_wavelength=550.0,
+        has_absorption=True
+    )
+    
+    config.set_atmosphere_heterogeneous(
+        molecular_config=molecular_config,
+        particle_layers=[hazy_layer]
+    )
     
     print("Basic configuration created")
     
@@ -94,7 +132,6 @@ def simple_integration_example():
         print(f" Target: {config.location.aoi_size_km}km² at {config.processing.target_resolution_m}m")
         if config.has_buffer:
             print(f"  Buffer: {config.buffer.buffer_size_km}km² at {config.buffer.buffer_resolution_m}m")
-            print(f"  Background: {config.buffer.background_material.value}")
         print(f"  Output: {config.scene_output_dir}")
         
     except Exception as e:
@@ -121,39 +158,39 @@ def simple_integration_example():
             samples_per_pixel=32
         ),
         
-        # Custom satellite sensor
-        SatelliteSensor(
-            id="custom_satellite", 
-            platform="custom",
-            instrument="custom",
-            band="red",
-            viewing=AngularViewing(zenith=15.0, azimuth=45.0, target=[0, 0, 0]),
-            srf=SpectralResponse(type="delta", wavelengths=[660.0]),
-            samples_per_pixel=64
-        ),
+    #     # Custom satellite sensor
+    #     SatelliteSensor(
+    #         id="custom_satellite", 
+    #         platform="custom",
+    #         instrument="custom",
+    #         band="red",
+    #         viewing=AngularViewing(zenith=15.0, azimuth=45.0, target=[0, 0, 0]),
+    #         srf=SpectralResponse(type="delta", wavelengths=[660.0]),
+    #         samples_per_pixel=64
+    #     ),
         
-        # Ground-based sensor
-        GroundSensor(
-            id="ground_hypstar",
-            instrument=GroundInstrumentType.HYPSTAR,
-            viewing=AngularFromOriginViewing(
-                origin=[0, 0, 2],
-                zenith=0.0,  # Looking nadir
-                azimuth=0.0,
-            ),
-            srf=SpectralResponse(type="delta", wavelengths=[660.0]),
-            samples_per_pixel=64
-        )
-    ]
+    #     # Ground-based sensor
+    #     GroundSensor(
+    #         id="ground_hypstar",
+    #         instrument=GroundInstrumentType.HYPSTAR,
+    #         viewing=AngularFromOriginViewing(
+    #             origin=[0, 0, 2],
+    #             zenith=0.0,  # Looking nadir
+    #             azimuth=0.0,
+    #         ),
+    #         srf=SpectralResponse(type="delta", wavelengths=[660.0]),
+    #         samples_per_pixel=64
+    #     )
+    # ]
     
-    radiative_quantities = [
-        RadiativeQuantityConfig(
-            quantity=MeasurementType.BRF,
-            srf=SpectralResponse(type="delta", wavelengths=[440.0, 550.0, 660.0]),
-            viewing_zenith=0.0,
-            viewing_azimuth=0.0,
-            samples_per_pixel=64
-        )
+    # radiative_quantities = [
+    #     RadiativeQuantityConfig(
+    #         quantity=MeasurementType.BRF,
+    #         srf=SpectralResponse(type="delta", wavelengths=[440.0, 550.0, 660.0]),
+    #         viewing_zenith=0.0,
+    #         viewing_azimuth=0.0,
+    #         samples_per_pixel=64
+    #     )
     ]
     
     simulation_config = SimulationConfig(
@@ -161,7 +198,7 @@ def simple_integration_example():
         description="Simulation using scene configuration with both sensors and radiative quantities",
         illumination=DirectionalIllumination(zenith=30.0, azimuth=180.0),
         sensors=sensors,
-        radiative_quantities=radiative_quantities,
+        # radiative_quantities=radiative_quantities,
         backend_hints={
             "eradiate": {
                 "mode": "mono"
@@ -186,7 +223,7 @@ def simple_integration_example():
     
     # Generate schema for reference
     schema = SimulationConfig.model_json_schema()
-    with open('./simulation_schema.json', 'w') as f:
+    with open_file('./simulation_schema.json', 'w') as f:
         json.dump(schema, f, indent=2)
     print(f"  Schema: simulation_schema.json")
     
