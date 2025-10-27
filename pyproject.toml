@@ -6,7 +6,6 @@ authors = [
   { name = "Misael Gonzalez (Rayference)" },
   { name = "Nicolae Marton (Rayference)" },
 ]
-dependencies = ["memory-profiler>=0.61.0,<0.62", "memray>=1.18.0,<2"]
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
@@ -14,20 +13,20 @@ platforms = ["linux-64"]
 
 [tool.pixi.dependencies]
 python = ">=3.10,<3.12"
-numpy = ">=1.24.0,<2"
 jupyterlab = ">=4,<5"
 pytest = ">=8"
 ruff = ">=0.2"
 mkdocs = ">=1.5"
-fsspec = ">=2023.1.0"
-xarray = ">=2023.1.0,<2025"
-xarray-regrid = ">=0.4.1,<0.5"
 snakeviz = ">=2.2.2,<3"
 
 [tool.pixi.pypi-dependencies]
 s2gos_utils = { path = "./packages/s2gos-utils", editable = true }
 s2gos_generator = { path = "./packages/s2gos-generator", editable = true }
 s2gos_simulator = { path = "./packages/s2gos-simulator", editable = true }
+
+[tool.pixi.feature.dev.pypi-dependencies]
+memory-profiler = ">=0.61.0,<0.62"
+memray = ">=1.18.0,<2"
 
 [tool.pixi.tasks]
 lab = "jupyter lab"
@@ -38,10 +37,10 @@ docs = "mkdocs serve"
 integration = "python integration_example_eradiate.py"
 simple = "python simple_integration_example.py"
 
-[tool.pixi.environments]
-default = { solve-group = "default" }
-dev = { features = ["dev"], solve-group = "default" }
-
 [tool.pixi.feature.dev.dependencies]
 ipython = "*"
 ipykernel = "*"
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+dev = { features = ["dev"], solve-group = "default" }
