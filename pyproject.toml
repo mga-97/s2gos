@@ -3,9 +3,10 @@ name = "s2gos-monorepo"
 version = "0.1.0"
 description = "Development workspace for the S2GOS generator and simulator."
 authors = [
-    { name = "Misael Gonzalez (Rayference)" },
-    { name = "Nicolae Marton (Rayference)" }
+  { name = "Misael Gonzalez (Rayference)" },
+  { name = "Nicolae Marton (Rayference)" },
 ]
+dependencies = ["memory-profiler>=0.61.0,<0.62", "memray>=1.18.0,<2"]
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
@@ -13,11 +14,15 @@ platforms = ["linux-64"]
 
 [tool.pixi.dependencies]
 python = ">=3.10,<3.12"
+numpy = ">=1.24.0,<2"
 jupyterlab = ">=4,<5"
 pytest = ">=8"
 ruff = ">=0.2"
 mkdocs = ">=1.5"
 fsspec = ">=2023.1.0"
+xarray = ">=2023.1.0,<2025"
+xarray-regrid = ">=0.4.1,<0.5"
+snakeviz = ">=2.2.2,<3"
 
 [tool.pixi.pypi-dependencies]
 s2gos_utils = { path = "./packages/s2gos-utils", editable = true }
