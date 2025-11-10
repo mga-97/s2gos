@@ -1,0 +1,934 @@
+{
+  "$defs": {
+    "AngularFromOriginViewing": {
+      "description": "Viewing defined by an origin position and zenith/azimuth angles from that origin.\n\nThis is ideal for radiancemeters and cameras where you know the sensor position\nand want to specify the pointing direction with angles.",
+      "properties": {
+        "type": {
+          "const": "angular_from_origin",
+          "default": "angular_from_origin",
+          "title": "Type",
+          "type": "string"
+        },
+        "origin": {
+          "description": "3D sensor position [x, y, z] in meters",
+          "items": {
+            "type": "number"
+          },
+          "title": "Origin",
+          "type": "array"
+        },
+        "zenith": {
+          "default": 0.0,
+          "description": "Pointing zenith angle (0=down/nadir, 90=horizon, 180=up)",
+          "maximum": 180.0,
+          "minimum": 0.0,
+          "title": "Zenith",
+          "type": "number"
+        },
+        "azimuth": {
+          "default": 0.0,
+          "description": "Pointing azimuth angle (0=East, 90=North)",
+          "exclusiveMaximum": 360.0,
+          "minimum": 0.0,
+          "title": "Azimuth",
+          "type": "number"
+        },
+        "up": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": [
+            0,
+            0,
+            1
+          ],
+          "description": "Up direction for cameras [x, y, z] (default Z-up)",
+          "title": "Up"
+        }
+      },
+      "required": [
+        "origin"
+      ],
+      "title": "AngularFromOriginViewing",
+      "type": "object"
+    },
+    "AngularViewing": {
+      "description": "Viewing defined by zenith and azimuth angles, typically relative to a target.\n\nThis is ideal for distant sensors (satellites)",
+      "properties": {
+        "type": {
+          "const": "angular",
+          "default": "angular",
+          "title": "Type",
+          "type": "string"
+        },
+        "zenith": {
+          "default": 0.0,
+          "description": "Viewing zenith angle (0=nadir, 90=horizon, 180=upward)",
+          "maximum": 180.0,
+          "minimum": 0.0,
+          "title": "Zenith",
+          "type": "number"
+        },
+        "azimuth": {
+          "default": 0.0,
+          "description": "Viewing azimuth angle",
+          "exclusiveMaximum": 360.0,
+          "minimum": 0.0,
+          "title": "Azimuth",
+          "type": "number"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Center of the observed area [x, y, z]. If None, defaults to scene center [0,0,0].",
+          "title": "Target"
+        }
+      },
+      "title": "AngularViewing",
+      "type": "object"
+    },
+    "ConstantIllumination": {
+      "description": "Constant uniform illumination.",
+      "properties": {
+        "type": {
+          "const": "constant",
+          "default": "constant",
+          "title": "Type",
+          "type": "string"
+        },
+        "id": {
+          "default": "illumination",
+          "description": "Unique identifier",
+          "title": "Id",
+          "type": "string"
+        },
+        "radiance": {
+          "default": 1.0,
+          "description": "Constant radiance value",
+          "exclusiveMinimum": 0.0,
+          "title": "Radiance",
+          "type": "number"
+        }
+      },
+      "title": "ConstantIllumination",
+      "type": "object"
+    },
+    "DirectionalIllumination": {
+      "description": "Directional illumination (e.g., sun).",
+      "properties": {
+        "type": {
+          "const": "directional",
+          "default": "directional",
+          "title": "Type",
+          "type": "string"
+        },
+        "id": {
+          "default": "illumination",
+          "description": "Unique identifier",
+          "title": "Id",
+          "type": "string"
+        },
+        "zenith": {
+          "default": 30.0,
+          "description": "Solar zenith angle in degrees",
+          "maximum": 90.0,
+          "minimum": 0.0,
+          "title": "Zenith",
+          "type": "number"
+        },
+        "azimuth": {
+          "default": 180.0,
+          "description": "Solar azimuth angle in degrees",
+          "exclusiveMaximum": 360.0,
+          "minimum": 0.0,
+          "title": "Azimuth",
+          "type": "number"
+        },
+        "irradiance_dataset": {
+          "default": "thuillier_2003",
+          "description": "Solar irradiance dataset",
+          "title": "Irradiance Dataset",
+          "type": "string"
+        }
+      },
+      "title": "DirectionalIllumination",
+      "type": "object"
+    },
+    "GroundInstrumentType": {
+      "description": "Enum for ground instrument types for robustness.",
+      "enum": [
+        "hypstar",
+        "perspective_camera",
+        "pyranometer",
+        "flux_meter",
+        "dhp_camera"
+      ],
+      "title": "GroundInstrumentType",
+      "type": "string"
+    },
+    "GroundSensor": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unique sensor identifier (auto-generated if not provided)",
+          "title": "Id"
+        },
+        "platform_type": {
+          "const": "ground",
+          "default": "ground",
+          "title": "Platform Type",
+          "type": "string"
+        },
+        "viewing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LookAtViewing"
+            },
+            {
+              "$ref": "#/$defs/AngularFromOriginViewing"
+            }
+          ],
+          "title": "Viewing"
+        },
+        "srf": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpectralResponse"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Spectral response function",
+          "title": "Srf"
+        },
+        "produces": {
+          "default": [
+            "radiance"
+          ],
+          "description": "List of radiative quantities to be produced by this sensor configuration",
+          "items": {
+            "$ref": "#/$defs/MeasurementType"
+          },
+          "title": "Produces",
+          "type": "array"
+        },
+        "samples_per_pixel": {
+          "default": 64,
+          "minimum": 1,
+          "title": "Samples Per Pixel",
+          "type": "integer"
+        },
+        "noise_model": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Noise Model"
+        },
+        "instrument": {
+          "$ref": "#/$defs/GroundInstrumentType"
+        },
+        "terrain_relative_height": {
+          "default": false,
+          "description": "If True, z-coordinate in origin is offset from terrain elevation. If False (default), z-coordinate is absolute elevation.",
+          "title": "Terrain Relative Height",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "viewing",
+        "instrument"
+      ],
+      "title": "GroundSensor",
+      "type": "object"
+    },
+    "LookAtViewing": {
+      "description": "Viewing defined by an origin and a target point.\n\nThis is ideal for UAVs or perspective cameras where the exact position\nof the sensor and its target are known.",
+      "properties": {
+        "type": {
+          "const": "directional",
+          "default": "directional",
+          "title": "Type",
+          "type": "string"
+        },
+        "origin": {
+          "description": "3D sensor position [x, y, z] in meters",
+          "items": {
+            "type": "number"
+          },
+          "title": "Origin",
+          "type": "array"
+        },
+        "target": {
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "description": "3D target position [x, y, z] in meters",
+          "items": {
+            "type": "number"
+          },
+          "title": "Target",
+          "type": "array"
+        },
+        "up": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": [
+            0,
+            0,
+            1
+          ],
+          "description": "Up direction for cameras [x, y, z] (default Z-up)",
+          "title": "Up"
+        }
+      },
+      "required": [
+        "origin"
+      ],
+      "title": "LookAtViewing",
+      "type": "object"
+    },
+    "MeasurementType": {
+      "description": "Radiative quantities that can be measured.",
+      "enum": [
+        "brf",
+        "hdrf",
+        "bhr",
+        "bhr_iso",
+        "flux_3d",
+        "radiance",
+        "irradiance",
+        "dhp",
+        "fapar"
+      ],
+      "title": "MeasurementType",
+      "type": "string"
+    },
+    "ProcessingConfig": {
+      "description": "Processing configuration.",
+      "properties": {
+        "orthorectified": {
+          "default": false,
+          "description": "Whether to produce orthorectified output",
+          "title": "Orthorectified",
+          "type": "boolean"
+        }
+      },
+      "title": "ProcessingConfig",
+      "type": "object"
+    },
+    "RadiativeQuantityConfig": {
+      "description": "Configuration for radiative quantities independent of sensors.",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unique identifier for this radiative quantity measurement",
+          "title": "Id"
+        },
+        "quantity": {
+          "$ref": "#/$defs/MeasurementType",
+          "description": "Type of radiative quantity to calculate"
+        },
+        "srf": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpectralResponse"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Spectral response function",
+          "title": "Srf"
+        },
+        "viewing_zenith": {
+          "anyOf": [
+            {
+              "maximum": 180.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Viewing zenith angle for directional quantities",
+          "title": "Viewing Zenith"
+        },
+        "viewing_azimuth": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 360.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Viewing azimuth angle for directional quantities",
+          "title": "Viewing Azimuth"
+        },
+        "target_lat": {
+          "title": "Target Lat",
+          "type": "number"
+        },
+        "target_lon": {
+          "title": "Target Lon",
+          "type": "number"
+        },
+        "samples_per_pixel": {
+          "default": 64,
+          "description": "Number of samples per pixel for Monte Carlo calculations",
+          "minimum": 1,
+          "title": "Samples Per Pixel",
+          "type": "integer"
+        },
+        "reference_panel_offset_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Height offset above terrain for HDRF reference panel (accounts for vegetation height). Required for HDRF measurements.",
+          "title": "Reference Panel Offset M"
+        }
+      },
+      "required": [
+        "quantity"
+      ],
+      "title": "RadiativeQuantityConfig",
+      "type": "object"
+    },
+    "SatelliteInstrument": {
+      "description": "Supported satellite instruments.",
+      "enum": [
+        "msi",
+        "olci",
+        "oli",
+        "modis",
+        "vnir",
+        "hsi",
+        "custom"
+      ],
+      "title": "SatelliteInstrument",
+      "type": "string"
+    },
+    "SatellitePlatform": {
+      "description": "Supported satellite platforms.",
+      "enum": [
+        "sentinel-2a",
+        "sentinel-2b",
+        "sentinel-3a",
+        "sentinel-3b",
+        "landsat-8",
+        "landsat-9",
+        "modis-terra",
+        "modis-aqua",
+        "chime",
+        "endmap",
+        "custom"
+      ],
+      "title": "SatellitePlatform",
+      "type": "string"
+    },
+    "SatelliteSensor": {
+      "description": "Satellite sensor configuration with strong validation.",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unique sensor identifier (auto-generated if not provided)",
+          "title": "Id"
+        },
+        "platform_type": {
+          "const": "satellite",
+          "default": "satellite",
+          "title": "Platform Type",
+          "type": "string"
+        },
+        "viewing": {
+          "$ref": "#/$defs/AngularViewing"
+        },
+        "srf": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpectralResponse"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Spectral response function",
+          "title": "Srf"
+        },
+        "produces": {
+          "default": [
+            "radiance"
+          ],
+          "description": "List of radiative quantities to be produced by this sensor configuration",
+          "items": {
+            "$ref": "#/$defs/MeasurementType"
+          },
+          "title": "Produces",
+          "type": "array"
+        },
+        "samples_per_pixel": {
+          "default": 64,
+          "minimum": 1,
+          "title": "Samples Per Pixel",
+          "type": "integer"
+        },
+        "noise_model": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Noise Model"
+        },
+        "platform": {
+          "$ref": "#/$defs/SatellitePlatform"
+        },
+        "instrument": {
+          "$ref": "#/$defs/SatelliteInstrument"
+        },
+        "band": {
+          "title": "Band",
+          "type": "string"
+        },
+        "film_resolution": {
+          "description": "Pixel grid dimensions (width, height) for 2D imaging",
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Film Resolution",
+          "type": "array"
+        },
+        "target_center_lat": {
+          "description": "Target center latitude in WGS84 decimal degrees",
+          "title": "Target Center Lat",
+          "type": "number"
+        },
+        "target_center_lon": {
+          "description": "Target center longitude in WGS84 decimal degrees",
+          "title": "Target Center Lon",
+          "type": "number"
+        },
+        "target_size_km": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            }
+          ],
+          "description": "Target area size: float for square (km), tuple for rectangular (width_km, height_km)",
+          "title": "Target Size Km"
+        }
+      },
+      "required": [
+        "viewing",
+        "platform",
+        "instrument",
+        "band",
+        "film_resolution",
+        "target_center_lat",
+        "target_center_lon",
+        "target_size_km"
+      ],
+      "title": "SatelliteSensor",
+      "type": "object"
+    },
+    "SpectralResponse": {
+      "description": "Spectral response function configuration.",
+      "properties": {
+        "type": {
+          "default": "delta",
+          "enum": [
+            "delta",
+            "uniform",
+            "dataset"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "wavelengths": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Wavelengths in nm for delta SRF or center wavelength for gaussian SRF",
+          "title": "Wavelengths"
+        },
+        "wmin": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Minimum wavelength for uniform SRF",
+          "title": "Wmin"
+        },
+        "wmax": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum wavelength for uniform SRF",
+          "title": "Wmax"
+        },
+        "dataset_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Dataset ID for predefined SRF",
+          "title": "Dataset Id"
+        }
+      },
+      "title": "SpectralResponse",
+      "type": "object"
+    },
+    "UAVInstrumentType": {
+      "description": "Enum for UAV-mounted instrument types.",
+      "enum": [
+        "perspective_camera",
+        "radiancemeter"
+      ],
+      "title": "UAVInstrumentType",
+      "type": "string"
+    },
+    "UAVSensor": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unique sensor identifier (auto-generated if not provided)",
+          "title": "Id"
+        },
+        "platform_type": {
+          "const": "uav",
+          "default": "uav",
+          "title": "Platform Type",
+          "type": "string"
+        },
+        "viewing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LookAtViewing"
+            },
+            {
+              "$ref": "#/$defs/AngularFromOriginViewing"
+            }
+          ],
+          "title": "Viewing"
+        },
+        "srf": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpectralResponse"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Spectral response function",
+          "title": "Srf"
+        },
+        "produces": {
+          "default": [
+            "radiance"
+          ],
+          "description": "List of radiative quantities to be produced by this sensor configuration",
+          "items": {
+            "$ref": "#/$defs/MeasurementType"
+          },
+          "title": "Produces",
+          "type": "array"
+        },
+        "samples_per_pixel": {
+          "default": 64,
+          "minimum": 1,
+          "title": "Samples Per Pixel",
+          "type": "integer"
+        },
+        "noise_model": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Noise Model"
+        },
+        "instrument": {
+          "$ref": "#/$defs/UAVInstrumentType"
+        },
+        "fov": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fov"
+        },
+        "resolution": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolution"
+        }
+      },
+      "required": [
+        "viewing",
+        "instrument"
+      ],
+      "title": "UAVSensor",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Comprehensive simulation configuration containing everything needed to run a simulation.\n\nThis single configuration class includes:\n- Sensor definitions for all platforms\n- Illumination settings\n- Measurement types and processing levels\n- Noise modeling and validation",
+  "properties": {
+    "config_version": {
+      "description": "Configuration schema version",
+      "title": "Config Version",
+      "type": "string"
+    },
+    "name": {
+      "description": "Simulation name",
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Simulation description",
+      "title": "Description"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "illumination": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DirectionalIllumination"
+        },
+        {
+          "$ref": "#/$defs/ConstantIllumination"
+        }
+      ],
+      "description": "Illumination configuration",
+      "title": "Illumination"
+    },
+    "sensors": {
+      "description": "List of sensors to simulate",
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/SatelliteSensor"
+          },
+          {
+            "$ref": "#/$defs/UAVSensor"
+          },
+          {
+            "$ref": "#/$defs/GroundSensor"
+          }
+        ]
+      },
+      "title": "Sensors",
+      "type": "array"
+    },
+    "radiative_quantities": {
+      "description": "List of radiative quantities to calculate independently",
+      "items": {
+        "$ref": "#/$defs/RadiativeQuantityConfig"
+      },
+      "title": "Radiative Quantities",
+      "type": "array"
+    },
+    "processing": {
+      "$ref": "#/$defs/ProcessingConfig",
+      "description": "Processing configuration"
+    },
+    "enable_noise": {
+      "default": false,
+      "description": "Enable noise modeling",
+      "title": "Enable Noise",
+      "type": "boolean"
+    },
+    "backend_hints": {
+      "additionalProperties": true,
+      "description": "Backend-specific configuration hints (e.g., {'eradiate': {'mode': 'ckd_double'}}).\n\n        For Eradiate backend:\n        - 'mode': Spectral mode ('mono', 'ckd', 'mono_polarized', 'ckd_polarized', etc.)\n        ",
+      "title": "Backend Hints",
+      "type": "object"
+    }
+  },
+  "required": [
+    "name",
+    "illumination"
+  ],
+  "title": "SimulationConfig",
+  "type": "object"
+}
