@@ -2,7 +2,7 @@
   "config_version": "0.0.1",
   "name": "config_simulation",
   "description": "Simulation using scene configuration with both sensors and radiative quantities",
-  "created_at": "2025-11-10T13:03:27.360329",
+  "created_at": "2025-11-13T16:32:09.953306",
   "illumination": {
     "type": "directional",
     "id": "illumination",

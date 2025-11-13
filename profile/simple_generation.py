@@ -26,14 +26,14 @@ scene_cs = CoordinateSystem(center_lat=target_lat, center_lon=target_lon)
 def scene_configuration(target_size, density, buffer, background):  # use_albedo_texturing=False):
     # Create basic configuration using defaults
     
-    # name = "pnp_scene"
-    name = "pnp_lake"
+    name = "pnp_scene"
+    # name = "pnp_lake"
 
     scene_name = ( 
         f"{name}_S{int(target_size)}"
         f"_D{int(density)}"
         f"{'_noBu' if not buffer else ''}"
-        f"{'_noBa' if not background else ''}_opt"
+        f"{'_noBa' if not background else ''}"
     )
     
     config = create_scene_config(
@@ -41,7 +41,7 @@ def scene_configuration(target_size, density, buffer, background):  # use_albedo
         center_lat=target_lat,
         center_lon=target_lon,
         aoi_size_km=target_size,
-        output_dir=UPath("./simple_integration_output"),
+        output_dir=UPath("./simple_output"),
         target_resolution_m=10.0,
         description="Scene around PNP",
     )

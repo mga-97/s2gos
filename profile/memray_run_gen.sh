@@ -18,8 +18,8 @@ fi
 FILENAME="pnp_S${TARGET_SIZE}_D${VEG_DENSITY}${SBUFFER}${SBACKGROUND}.bin"
 
 pixi run -e dev \
-    memray run -o "/media/TOBEDELETED/s2gos/profiling/20251106/generation/${FILENAME}" \
+    memray run --force --aggregate -o "./profile/generation/${FILENAME}" \
     simple_generation.py --size=$TARGET_SIZE --density=$VEG_DENSITY --buffer=$BUFFER --background=$BACKGROUND
 
 pixi run -e dev \
-    memray flamegraph --temporal "/media/TOBEDELETED/s2gos/profiling/20251106/generation/${FILENAME}" 
+    memray flamegraph --force "./profile/generation/${FILENAME}" 
