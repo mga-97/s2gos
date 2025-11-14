@@ -1,5 +1,6 @@
 from s2gos_generator import SceneGenConfig, SceneGenerationPipeline
 from upath import UPath
+import os
 
 
 def simple_generation_example(config: SceneGenConfig):
@@ -71,4 +72,9 @@ def simple_generation_example(config: SceneGenConfig):
     print("Integration Example Complete!")
     print(f"Output directory: {config.scene_output_dir}")
 
+    if not os.path.exists("./gen_config"):
+        os.mkdir("./gen_config")
+
+    config.to_json(f"./gen_config/{config.scene_name}_config.json")
+    
     return True

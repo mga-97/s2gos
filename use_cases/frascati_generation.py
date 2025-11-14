@@ -128,7 +128,6 @@ if __name__ == "__main__":
     )
 
     success = gen_util.simple_generation_example(config)
-    config.to_json(f"./gen_config/{scene_name}_config.json")
 
     if success:
         print("\nDemo completed successfully!")

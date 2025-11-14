@@ -1,4 +1,4 @@
-import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -25,7 +25,7 @@ def top_down_perspective_sensor(target_size, fov, spp):
         id="uav_rgb_camera",
         instrument=UAVInstrumentType.PERSPECTIVE_CAMERA,
         viewing=LookAtViewing(
-            origin=[0.0, 0.0, distance*1000], target=[0.0, 0.0, 0.0], up=[0, 1, 0]
+            origin=[0.0, 0.0, distance * 1000], target=[0.0, 0.0, 0.0], up=[0, 1, 0]
         ),
         srf=SpectralResponse(type="delta", wavelengths=[440.0, 550.0, 660.0]),
         fov=fov,
@@ -74,15 +74,15 @@ def simulation_config(scene_name, target_lat, target_lon, target_size, gmt_hour,
     print(f"  Radiative quantities: {len(simulation_config.radiative_quantities)}")
 
     # Save simulation configuration
+    if not os.path.exists("./sim_config"):
+        os.mkdir("./sim_config")
+
     simulation_config.to_json(UPath(f"./sim_config/{scene_name}_config.json"))
     print("  Saved: simulation_config.json")
     return simulation_config
 
 
-def simple_simulation_example(
-    scene_name: str,
-    simulation_config: SimulationConfig
-):
+def simple_simulation_example(scene_name: str, simulation_config: SimulationConfig):
     from s2gos_utils.scene import SceneDescription
 
     # Generate schema for referenceg``
@@ -190,7 +190,7 @@ def simple_simulation_example(
             simulator.run_simulation(
                 scene_input,
                 scene_dir=UPath(f"./gen_output/{scene_name}"),
-                output_dir= simulation_output_dir,
+                output_dir=simulation_output_dir,
                 plot_image=True,
                 id_to_plot="uav_rgb_camera",
             )
