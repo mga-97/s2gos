@@ -99,7 +99,7 @@ def scene_configuration(
 
     mast = UserAssets(
         object_id="hypernet_mast",
-        ply_path="/home/martonn/Projects/s2gos/s2gos/packages/s2gos-generator/src/s2gos_generator/data/meshes/HYPERNETS_Mast.ply",
+        ply_path="./meshes/HYPERNETS_Mast.ply",
         coordinate=[15.1258696, -23.6015417],
         elevation_offset=1.5,
         material="rough_aluminum",
@@ -108,14 +108,14 @@ def scene_configuration(
     config.user_assets.append(mast)
 
     fences = XmlSceneConfig(
-        xml_path="/home/martonn/Projects/s2gos/s2gos/packages/s2gos-generator/src/s2gos_generator/data/gobabeb_fence_custom.xml",
+        xml_path="./gobabeb_fence_custom.xml",
         base_coordinate=(15.1253501, -23.6011482),
         elevation_offset=0.,
     )
     config.xml_scenes.append(fences)
 
     config.enable_hamster_albedo(
-        data_path="/home/martonn/Projects/s2gos/s2gos/packages/s2gos-generator/src/s2gos_generator/data/HAMSTER_Gobabeb/DOY196_Gobabeb.nc",
+        data_path="./HAMSTER_Gobabeb/DOY196_Gobabeb.nc",
         variable_name="albedo",
         fallback_on_error=True,
     )
