@@ -17,6 +17,8 @@ from s2gos_simulator.config import (
 )
 from upath import UPath
 
+from ..registry import registry
+
 
 def top_down_perspective_sensor(target_size, fov, spp):
     distance = (target_size / 2.0) / np.tan(np.deg2rad(fov / 2))
@@ -82,7 +84,8 @@ def simulation_config(scene_name, target_lat, target_lon, target_size, gmt_hour,
     return simulation_config
 
 
-def simple_simulation_example(scene_name: str, simulation_config: SimulationConfig):
+@registry.process(id="common-generation")
+def simulation(scene_name: str, simulation_config: SimulationConfig):
     from s2gos_utils.scene import SceneDescription
 
     # Generate schema for referenceg``

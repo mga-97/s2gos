@@ -18,11 +18,13 @@ pytest = ">=8"
 ruff = ">=0.2"
 mkdocs = ">=1.5"
 snakeviz = ">=2.2.2,<3"
+procodile = ">=0.0.8,<0.0.9"
 
 [tool.pixi.pypi-dependencies]
 s2gos_utils = { path = "./packages/s2gos-utils", editable = true }
 s2gos_generator = { path = "./packages/s2gos-generator", editable = true }
 s2gos_simulator = { path = "./packages/s2gos-simulator", editable = true }
+s2gos_apps = { path = ".", editable = true }
 
 [tool.pixi.feature.dev.pypi-dependencies]
 memory-profiler = ">=0.61.0,<0.62"
@@ -44,3 +46,6 @@ ipykernel = "*"
 [tool.pixi.environments]
 default = { solve-group = "default" }
 dev = { features = ["dev"], solve-group = "default" }
+
+[project.scripts]
+s2gos_apps = "s2gos_apps.cli:cli"
