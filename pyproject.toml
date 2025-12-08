@@ -1,5 +1,5 @@
 [project]
-name = "s2gos-monorepo"
+name = "s2gos-apps"
 version = "0.1.0"
 description = "Development workspace for the S2GOS generator and simulator."
 authors = [
