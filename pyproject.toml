@@ -1,6 +1,6 @@
 [project]
 name = "s2gos-apps"
-version = "0.1.0"
+version = "0.0.1"
 description = "Development workspace for the S2GOS generator and simulator."
 authors = [
   { name = "Misael Gonzalez (Rayference)" },

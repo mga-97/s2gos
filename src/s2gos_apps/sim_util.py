@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-from pathlib import Path
 
 import numpy as np
 from s2gos_simulator.backends.eradiate_backend import (
@@ -15,9 +14,8 @@ from s2gos_simulator.config import (
     UAVInstrumentType,
     UAVSensor,
 )
+from s2gos_utils import PathLike, SceneDescription
 from upath import UPath
-
-from ..registry import registry
 
 
 def top_down_perspective_sensor(target_size, fov, spp):
@@ -36,14 +34,21 @@ def top_down_perspective_sensor(target_size, fov, spp):
     )
 
 
-def simulation_config(scene_name, target_lat, target_lon, target_size, gmt_hour, spp=8):
-    """Demonstrate complete S2GOS simualtion."""
-    print("S2GOS Simulation Example")
-    print("=" * 60)
-    print()
-
+def simulation_config(
+    scene_name:str, 
+    target_lat:float, 
+    target_lon:float, 
+    target_size:float, 
+    gmt_hour:float, 
+    spp:int=8, 
+    config_output_dir: PathLike | None = None
+) -> PathLike | None:
+    """Expand core parameters to a full simulation config."""
     # Step 3: Configure simulation with enhanced sensors
-    print("\nStep 3: Configuring simulation...")
+
+    print("\n")
+    print("="*60)
+    print("Configuring simulation...")
 
     # create top down sensor
     fov = 50
@@ -73,32 +78,45 @@ def simulation_config(scene_name, target_lat, target_lon, target_size, gmt_hour,
             instrument = instrument.value
         print(f"    {i + 1}. {sensor.id} ({platform}/{instrument})")
 
-    print(f"  Radiative quantities: {len(simulation_config.radiative_quantities)}")
-
     # Save simulation configuration
-    if not os.path.exists("./sim_config"):
-        os.mkdir("./sim_config")
+    config_filename = f"{scene_name}_sim_config.json"
 
-    simulation_config.to_json(UPath(f"./sim_config/{scene_name}_config.json"))
+    if config_output_dir is None:
+        if not os.path.exists("./sim_config"):
+            os.mkdir("./sim_config")
+
+        config_path = UPath(f"./sim_config/{config_filename}")
+    else:
+        if not os.path.exists(UPath(config_output_dir)):
+            os.mkdir(UPath(config_output_dir))
+
+        config_path = UPath(config_output_dir) / config_filename
+
+    simulation_config.to_json(config_path)
     print("  Saved: simulation_config.json")
-    return simulation_config
+    return config_path
 
 
-@registry.process(id="common-generation")
-def simulation(scene_name: str, simulation_config: SimulationConfig):
-    from s2gos_utils.scene import SceneDescription
+def simulation_from_config(
+    scene_description_path: PathLike, 
+    config: SimulationConfig, 
+    simulation_output_dir: PathLike|None = None,
+) -> PathLike | None:
+
+    print("\n")
+    print("="*60)
+    print("Simulating observation...")
+
+    scene_description_path = UPath(scene_description_path)
+    scene_description = SceneDescription.load_yaml(scene_description_path)
 
     # Generate schema for referenceg``
-    print("  Schema: simulation_schema.json")
-
-    scene_description = SceneDescription.load_yaml(
-        f"./gen_output/{scene_name}/{scene_name}.yml"
-    )
-    simulation_output_dir = UPath(f"./sim_output/{scene_name}")
+    if simulation_output_dir is None:
+        simulation_output_dir = UPath(f"./sim_output/{scene_description.name}")
 
     # Step 4: Run simulation (if available)
     if ERADIATE_AVAILABLE and scene_description:
-        print("\nStep 4: Validating materials and running simulation...")
+        print("\nValidating materials and running simulation...")
 
         # Handle both SceneDescription objects and raw resource dict
         if hasattr(scene_description, "materials"):
@@ -110,7 +128,7 @@ def simulation(scene_name: str, simulation_config: SimulationConfig):
             # Raw resource outputs - try to load scene description from path
             print("Using resource outputs dict - attempting to load scene from file...")
             scene_path = scene_description.get("scene_description")
-            if scene_path and Path(scene_path).exists():
+            if scene_path and UPath(scene_path).exists():
                 try:
                     import yaml
 
@@ -173,8 +191,6 @@ def simulation(scene_name: str, simulation_config: SimulationConfig):
             scene_path = scene_description["scene_description"]
             print(f"Using scene file path for simulation: {scene_path}")
             try:
-                from s2gos_utils.scene import SceneDescription
-
                 scene_input = SceneDescription.load_yaml(scene_path)
                 print("Successfully loaded SceneDescription for simulation")
             except Exception as e:
@@ -188,26 +204,19 @@ def simulation(scene_name: str, simulation_config: SimulationConfig):
             scene_input = None
 
         if scene_input:
-            # try:
-            simulator = EradiateBackend(simulation_config)
+            simulator = EradiateBackend(config)
             simulator.run_simulation(
                 scene_input,
-                scene_dir=UPath(f"./gen_output/{scene_name}"),
+                scene_dir=scene_description_path.parent,
                 output_dir=simulation_output_dir,
                 plot_image=True,
                 id_to_plot="uav_rgb_camera",
             )
             print("Simulation completed successfully!")
-            # except Exception as e:
-            #     print(f"Simulation failed: {e}")
-            #     print(
-            #         "This is a known issue with material definitions in the generated scene file"
-            #     )
-            #     return False
         else:
             print("Skipping simulation - no valid scene description available")
     else:
-        print("\nStep 4: Simulation skipped")
+        print("\nSimulation skipped")
         if not ERADIATE_AVAILABLE:
             print("  Eradiate not available")
         if not scene_description:
@@ -215,7 +224,6 @@ def simulation(scene_name: str, simulation_config: SimulationConfig):
 
     # Summary
     print("\n" + "=" * 60)
-    print("Integration Example Complete!")
     print(f"Output directory: {simulation_output_dir}")
 
-    return True
+    return simulation_output_dir

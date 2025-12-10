@@ -1,35 +1,54 @@
 #!/usr/bin/env python3
-import gen_util
-from upath import UPath
+import os
+from typing import Annotated
 
-from s2gos_generator import create_scene_config
-from s2gos_generator.core.config import (
-    AbsorptionDatabase,
-    MolecularAtmosphereConfig,
-    ThermophysicalConfig,
-    VegetationPlacementConfig,
-    VegetationSpecies,
-)
+from pydantic import Field
+from s2gos_utils.typing import PathLike
+
+from s2gos_apps.registry import registry
 
 
-def scene_configuration(
-        scene_name:str, 
-        lat:float, 
-        lon:float, 
-        target_size:float, 
-        output_dir:str|UPath=None
-    ):
+@registry.process(id="frascati/generation_config")
+def generation_configs(
+    scene_name: Annotated[str, Field(..., description="Scene id name.")],
+    target_lat: Annotated[float, Field(..., description="Target's center latitude.")],
+    target_lon: Annotated[float, Field(..., description="Target's center longitude.")],
+    target_size: Annotated[float, Field(..., description="Target's size in [km].")],
+    config_output_dir: Annotated[
+        PathLike | None,
+        Field(..., description="Generation configuration output directory."),
+    ] = None,
+    scene_output_dir: Annotated[
+        PathLike | None,
+        Field(..., description="Scene description output directiory."),
+    ] = None,
+) -> PathLike | None:
     """
-    Create the scene confifuration corresponding the PNP scene.
+    Create the scene confifuration corresponding the Frascati scene.
     """
+    from s2gos_generator import create_scene_config
+    from s2gos_generator.core.config import (
+        AbsorptionDatabase,
+        MolecularAtmosphereConfig,
+        ThermophysicalConfig,
+        VegetationPlacementConfig,
+        VegetationSpecies,
+    )
+    from upath import UPath
+
+    print("\n")
+    print("=" * 60)
+    print("Configuring generation...")
 
     # Create basic configuration using defaults
     config = create_scene_config(
         scene_name=scene_name,
-        center_lat=lat,
-        center_lon=lon,
+        center_lat=target_lat,
+        center_lon=target_lon,
         aoi_size_km=target_size,
-        output_dir=UPath("./gen_output") if output_dir is None else output_dir,
+        output_dir=UPath("./gen_output")
+        if scene_output_dir is None
+        else scene_output_dir,
         target_resolution_m=10.0,
         description="Frascati city and surroundings",
     )
@@ -111,26 +130,55 @@ def scene_configuration(
     else:
         print("Configuration validation passed")
 
-    return config
+    # Save generation config file
+    config_filename = f"{config.scene_name}_gen_config.json"
 
+    if config_output_dir is None:
+        if not os.path.exists("./gen_config"):
+            os.mkdir("./gen_config")
+
+        config_path = UPath(f"./gen_config/{config_filename}")
+    else:
+        if not os.path.exists(UPath(config_output_dir)):
+            os.mkdir(UPath(config_output_dir))
+
+        config_path = UPath(config_output_dir) / config_filename
+
+    config.to_json(config_path)
+
+    return config_path
+
+
+@registry.process(id="frascati/simulation_config")
+def simulation_configs(
+    scene_name: Annotated[str, Field(..., description="Scene id name.")],
+    target_lat: Annotated[float, Field(..., description="Target's center latitude.")],
+    target_lon: Annotated[float, Field(..., description="Target's center longitude.")],
+    target_size: Annotated[float, Field(..., description="Target's size in [km].")],
+    gmt_hour: Annotated[float, Field(..., description="Hour of observation at target in GMT time.")],
+    spp: Annotated[int, Field(..., description="Number of Monte Carlo samples.")] = 8,
+    config_output_dir: Annotated[
+        PathLike | None,
+        Field(..., description="Simulation configuration output directiory."),
+    ] = None,
+) -> PathLike | None:
+    from s2gos_apps.sim_util import simulation_config
+
+    config_path = simulation_config(
+        scene_name,
+        target_lat,
+        target_lon,
+        target_size,
+        gmt_hour,
+        spp,
+        config_output_dir,
+    )
+    return config_path
 
 if __name__ == "__main__":
-    print("S2GOS Generation Demo")
-    print()
-
     scene_name = "frascati"
-    target_lat =  41.821
-    target_lon =  12.570
+    target_lat = 41.821
+    target_lon = 12.570
     target_size = 20
-
-    config = scene_configuration(
-        scene_name, target_lat, target_lon, target_size
-    )
-
-    success = gen_util.simple_generation_example(config)
-
-    if success:
-        print("\nDemo completed successfully!")
-    else:
-        print("\nDemo encountered issues")
-        print("Check dependencies and data paths")
+    gmt_hour = 12
+    spp = 8
