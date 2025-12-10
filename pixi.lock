@@ -252,7 +252,6 @@ environments:
       - pypi: ./packages/s2gos-generator
       - pypi: ./packages/s2gos-simulator
       - pypi: ./packages/s2gos-utils
-      - pypi: ./test-cli
   dev:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
@@ -508,7 +507,6 @@ environments:
       - pypi: ./packages/s2gos-generator
       - pypi: ./packages/s2gos-simulator
       - pypi: ./packages/s2gos-utils
-      - pypi: ./test-cli
 packages:
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
   sha256: fe51de6107f9edc7aa4f786a70f4a883943bc9d39b3bb7307c04c41410990726
@@ -3395,8 +3393,8 @@ packages:
   timestamp: 1758258621428
 - pypi: ./
   name: s2gos-apps
-  version: 0.1.0
-  sha256: e5a2b9e55fdf570dad63958dda6f7e394e2aa623896a4e08ef27f29bca743229
+  version: 0.0.1
+  sha256: 368a5a0e89aeb6602ae8e74cc3ae55d26b0584835fc41eb803bf3a888927521a
   editable: true
 - pypi: ./packages/s2gos-generator
   name: s2gos-generator
@@ -3758,11 +3756,6 @@ packages:
   - pkg:pypi/terminado?source=hash-mapping
   size: 22452
   timestamp: 1710262728753
-- pypi: ./test-cli
-  name: test-cli
-  version: 0.0.1
-  sha256: 6263ef4d8b07b4adcb04e091bad2c657af52cc5dd87e1ad3466d99ff40b9a327
-  editable: true
 - pypi: https://files.pythonhosted.org/packages/c5/93/02c7adec57a594af28388d85da9972703a4af94ae1399542555cd9581952/textual-6.2.1-py3-none-any.whl
   name: textual
   version: 6.2.1
