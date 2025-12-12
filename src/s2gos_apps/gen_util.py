@@ -1,11 +1,12 @@
 from s2gos_generator import SceneGenConfig, SceneGenerationPipeline
 from upath import UPath
 
+
 def generation_from_config(config: SceneGenConfig):
     """3D scene generation from a scene configuration."""
 
     print("\n")
-    print("="*60)
+    print("=" * 60)
     print("Generating scene description...")
 
     # Step 1: Create and validate configuration

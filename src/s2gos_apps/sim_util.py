@@ -2,9 +2,9 @@ import os
 from datetime import datetime
 
 import numpy as np
-from s2gos_simulator.backends.eradiate_backend import (
-    ERADIATE_AVAILABLE,
+from s2gos_simulator.backends.eradiate.backend import (
     EradiateBackend,
+    ERADIATE_AVAILABLE,
 )
 from s2gos_simulator.config import (
     DirectionalIllumination,
@@ -35,19 +35,19 @@ def top_down_perspective_sensor(target_size, fov, spp):
 
 
 def simulation_config(
-    scene_name:str, 
-    target_lat:float, 
-    target_lon:float, 
-    target_size:float, 
-    gmt_hour:float, 
-    spp:int=8, 
-    config_output_dir: PathLike | None = None
+    scene_name: str,
+    target_lat: float,
+    target_lon: float,
+    target_size: float,
+    gmt_hour: float,
+    spp: int = 8,
+    config_output_dir: PathLike | None = None,
 ) -> PathLike | None:
     """Expand core parameters to a full simulation config."""
     # Step 3: Configure simulation with enhanced sensors
 
     print("\n")
-    print("="*60)
+    print("=" * 60)
     print("Configuring simulation...")
 
     # create top down sensor
@@ -98,13 +98,12 @@ def simulation_config(
 
 
 def simulation_from_config(
-    scene_description_path: PathLike, 
-    config: SimulationConfig, 
-    simulation_output_dir: PathLike|None = None,
+    scene_description_path: PathLike,
+    config: SimulationConfig,
+    simulation_output_dir: PathLike | None = None,
 ) -> PathLike | None:
-
     print("\n")
-    print("="*60)
+    print("=" * 60)
     print("Simulating observation...")
 
     scene_description_path = UPath(scene_description_path)

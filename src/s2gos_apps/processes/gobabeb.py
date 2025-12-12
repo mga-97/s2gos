@@ -201,8 +201,8 @@ def simulation_configs(
 
 if __name__ == "__main__":
     scene_name = "gobabeb"
-    target_lat =  -23.6015417
-    target_lon =  15.1258696
+    target_lat = -23.6015417
+    target_lon = 15.1258696
     target_size = 10
     gmt_hour = 9
     spp = 8

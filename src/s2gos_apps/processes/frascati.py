@@ -155,7 +155,9 @@ def simulation_configs(
     target_lat: Annotated[float, Field(..., description="Target's center latitude.")],
     target_lon: Annotated[float, Field(..., description="Target's center longitude.")],
     target_size: Annotated[float, Field(..., description="Target's size in [km].")],
-    gmt_hour: Annotated[float, Field(..., description="Hour of observation at target in GMT time.")],
+    gmt_hour: Annotated[
+        float, Field(..., description="Hour of observation at target in GMT time.")
+    ],
     spp: Annotated[int, Field(..., description="Number of Monte Carlo samples.")] = 8,
     config_output_dir: Annotated[
         PathLike | None,
@@ -174,6 +176,7 @@ def simulation_configs(
         config_output_dir,
     )
     return config_path
+
 
 if __name__ == "__main__":
     scene_name = "frascati"
