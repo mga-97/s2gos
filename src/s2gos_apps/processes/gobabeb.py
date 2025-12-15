@@ -116,25 +116,21 @@ def generation_configs(
         has_scattering=True,
     )
 
-    mast = UserAssets(
-        object_id="hypernet_mast",
-        ply_path="./meshes/HYPERNETS_Mast.ply",
-        coordinate=[15.1258696, -23.6015417],
-        elevation_offset=1.5,
-        material="rough_aluminum",
-        face_normals=True,
+    config.xml_scenes.append(
+        XmlSceneConfig(
+            xml_path="hypernets_mast_better.xml",
+            base_coordinate=(target_lon, target_lat),
+            elevation_offset=-0.1,
+        )
     )
-    config.user_assets.append(mast)
-
-    fences = XmlSceneConfig(
-        xml_path=UPath("./gobabeb_fence_custom.xml"),
-        base_coordinate=(15.1253501, -23.6011482),
-        elevation_offset=0.0,
+    config.xml_scenes.append(
+        XmlSceneConfig(
+            xml_path="gobabeb_fence_custom.xml",
+            base_coordinate=(15.1253501, -23.6011482),
+        )
     )
-    config.xml_scenes.append(fences)
-
     config.enable_hamster_albedo(
-        data_path=UPath("./HAMSTER_Gobabeb/DOY196_Gobabeb.nc"),
+        data_path=UPath("DOY196_Gobabeb.nc"),
         variable_name="albedo",
         fallback_on_error=True,
     )

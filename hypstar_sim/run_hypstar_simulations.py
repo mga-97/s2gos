@@ -15,6 +15,7 @@ from upath import UPath
 import xarray as xr
 
 # S2GOS / Eradiate Imports
+from s2gos_utils.io.resolver import resolver
 from s2gos_generator import create_scene_config
 from s2gos_generator.core import SceneGenerationPipeline
 from s2gos_generator.core.config import (
@@ -49,22 +50,23 @@ from s2gos_simulator.backends.eradiate.backend import (
 # 1. USER CONFIGURATION
 # ==============================================================================
 
-# Input / Output Paths
-HYPSTAR_L2A_PATH = ""
+# Input / Output Paths (resolved via s2gos_settings.toml -> ./hypstar_data/)
+HYPSTAR_L2A_PATH = "/home/gonzalezm/s2gos/s2gos/experimenting/gobabeb_hypernets/HYPERNETS_L_GHNA_L2A_REF_20220517T0743_20230424T0625_v1.0.nc"
 OUTPUT_DIR = Path("./hypstar_simulation_output")
 SCENE_NAME = "hypstar_gobabeb"
 
 # Data Dependencies
 PATHS = {
-    "hamster": "",
-    "thermo": "",
-    "aerosol": "",
-    "rpv": "",
-    "cams": "",
-    "kinne": "",
-    "mast": "",
-    "fence": "",
+    "hamster": "DOY196_Gobabeb.nc",
+    "thermo": "timeseries_ms_2022-05-02_v1.nc",
+    "aerosol": "D5_aerosol_model_v5_gobabeb_ert.nc",
+    "rpv": "RPV_gobabeb.nc",
+    "cams": "Gobabeb.nc",
+    "kinne": "altitude_t.nc",
+    "mast": "hypernets_mast_better.xml",
+    "fence": "gobabeb_fence_custom.xml",
 }
+
 
 # Settings
 SERIES_INDICES = [1, 24]  # List of indices or None for all
@@ -97,10 +99,12 @@ def get_geometry_and_time(ds: xr.Dataset, idx: int) -> dict:
     }
 
 
-def get_atmosphere_params(timestamp_dt: datetime) -> tuple[float, float]:
+def get_atmosphere_params(
+    timestamp_dt: datetime, resolved_paths: dict
+) -> tuple[float, float]:
     """Retrieves AOD and aerosol height from climatology files."""
-    gobabeb_ds = xr.open_dataset(PATHS["cams"])
-    kinne_ds = xr.open_dataset(PATHS["kinne"])
+    gobabeb_ds = xr.open_dataset(resolved_paths["cams"])
+    kinne_ds = xr.open_dataset(resolved_paths["kinne"])
 
     ts_naive = timestamp_dt.replace(tzinfo=None)
     aod = float(
@@ -213,13 +217,13 @@ def combine_hcrf_results(
 # ==============================================================================
 
 
-def build_scene_config() -> object:
+def build_scene_config(resolved_paths: dict) -> object:
     """Constructs the scene gen configuration."""
     config = create_scene_config(
         scene_name=SCENE_NAME,
         center_lat=TARGET_COORDS[0],
         center_lon=TARGET_COORDS[1],
-        aoi_size_km=4.0,
+        aoi_size_km=10.0,
         target_resolution_m=10.0,
         output_dir=UPath(OUTPUT_DIR) / "scene",
         description="HYPSTAR validation scene",
@@ -232,14 +236,16 @@ def build_scene_config() -> object:
     config.background_size_km = 100
     config.background_resolution_m = 200.0
 
-    config.enable_hamster_albedo(PATHS["hamster"], "albedo", fallback_on_error=True)
+    config.enable_hamster_albedo(
+        resolved_paths["hamster"], "albedo", fallback_on_error=True
+    )
 
     config.region_material_defs["gobabeb_measured_rpv"] = {
         "type": "rpv",
-        "rho_0": {"path": PATHS["rpv"], "variable": "rho_0"},
-        "k": {"path": PATHS["rpv"], "variable": "k"},
-        "Theta": {"path": PATHS["rpv"], "variable": "Theta"},
-        "rho_c": {"path": PATHS["rpv"], "variable": "rho_c"},
+        "rho_0": {"path": resolved_paths["rpv"], "variable": "rho_0"},
+        "k": {"path": resolved_paths["rpv"], "variable": "k"},
+        "Theta": {"path": resolved_paths["rpv"], "variable": "Theta"},
+        "rho_c": {"path": resolved_paths["rpv"], "variable": "rho_c"},
     }
     config.material_regions.append(
         MaterialRegion(
@@ -255,26 +261,26 @@ def build_scene_config() -> object:
 
     config.xml_scenes.append(
         XmlSceneConfig(
-            xml_path=PATHS["mast"],
+            xml_path=resolved_paths["mast"],
             base_coordinate=(TARGET_COORDS[1], TARGET_COORDS[0]),
             elevation_offset=-0.1,
         )
     )
     config.xml_scenes.append(
         XmlSceneConfig(
-            xml_path=PATHS["fence"], base_coordinate=(15.1253501, -23.6011482)
+            xml_path=resolved_paths["fence"], base_coordinate=(15.1253501, -23.6011482)
         )
     )
 
     # Atmosphere (Fixed reference time)
     atm_time = datetime(2022, 5, 17, 9, 45, 4, tzinfo=timezone.utc)
-    aod, aer_h = get_atmosphere_params(atm_time)
+    aod, aer_h = get_atmosphere_params(atm_time, resolved_paths)
     print(f"  Atmosphere Params: AOD={aod:.3f}, Height={aer_h:.1f}m")
 
     config.set_atmosphere_heterogeneous(
         MolecularAtmosphereConfig(
             thermoprops=ThermophysicalConfig(
-                identifier=None, thermoprops_file=UPath(PATHS["thermo"])
+                identifier=None, thermoprops_file=UPath(resolved_paths["thermo"])
             ),
             absorption_database=AbsorptionDatabase.MYCENA,
             has_absorption=True,
@@ -282,7 +288,7 @@ def build_scene_config() -> object:
         ),
         [
             ParticleLayerConfig(
-                aerosol_dataset=PATHS["aerosol"],
+                aerosol_dataset=resolved_paths["aerosol"],
                 optical_thickness=aod,
                 altitude_bottom=500.0,
                 altitude_top=500.0 + aer_h,
@@ -297,7 +303,7 @@ def build_scene_config() -> object:
     return config
 
 
-def build_sim_config(idx: int, geo: dict) -> SimulationConfig:
+def build_sim_config(idx: int, geo: dict, l2a_path: str) -> SimulationConfig:
     """Creates the simulation config for a specific time/geometry."""
     return SimulationConfig(
         name=f"hypstar_series_{idx:02d}",
@@ -330,7 +336,7 @@ def build_sim_config(idx: int, geo: dict) -> SimulationConfig:
                     fwhm_vnir_nm=3.0,
                     fwhm_swir_nm=10.0,
                     spatial_averaging=True,
-                    real_reference_file=HYPSTAR_L2A_PATH,
+                    real_reference_file=l2a_path,
                     wavelength_variable="wavelength",
                 ),
             )
@@ -368,20 +374,25 @@ def build_sim_config(idx: int, geo: dict) -> SimulationConfig:
 def main():
     if not ERADIATE_AVAILABLE:
         raise RuntimeError("Eradiate is missing.")
-    if not Path(HYPSTAR_L2A_PATH).exists():
-        raise FileNotFoundError("L2A data missing.")
 
+    # Resolve paths using s2gos_settings.toml search_paths
+    l2a_path = str(resolver.resolve(HYPSTAR_L2A_PATH, strict=True))
+    resolved_paths = {
+        k: str(resolver.resolve(v, strict=True)) for k, v in PATHS.items()
+    }
+
+    print(f"{resolved_paths = }")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     print(f"=== HYPSTAR Simulator | Output: {OUTPUT_DIR} ===")
 
     # 1. Load Data
-    ds = xr.load_dataset(HYPSTAR_L2A_PATH)
+    ds = xr.load_dataset(l2a_path)
     indices = SERIES_INDICES if SERIES_INDICES else list(range(len(ds.series)))
     print(f"[1/5] Loaded dataset. Processing {len(indices)} series.")
 
     # 2. Generate Scene
     print("\n[2/5] Generating Scene...")
-    scene_config = build_scene_config()
+    scene_config = build_scene_config(resolved_paths)
     pipeline = SceneGenerationPipeline(scene_config)
     scene_desc = pipeline.run_full_pipeline()
     scene_config.to_json(OUTPUT_DIR / "scene_config.json")
@@ -395,7 +406,7 @@ def main():
         )
 
         try:
-            sim_config = build_sim_config(idx, geo)
+            sim_config = build_sim_config(idx, geo, l2a_path)
             sim_config.to_json(OUTPUT_DIR / f"config_{idx:02d}.json")
 
             backend = EradiateBackend(sim_config)
@@ -425,11 +436,11 @@ def main():
         combined_ds = combine_hcrf_results(OUTPUT_DIR, indices, ds)
         output_nc = OUTPUT_DIR / f"{SCENE_NAME}_combined_hcrf.nc"
         combined_ds.to_netcdf(output_nc, mode="w")
-        print(f"  ✓ Saved combined NetCDF: {output_nc.name}")
+        print(f"  Saved combined NetCDF: {output_nc.name}")
         print(f"    - Wavelengths: {len(combined_ds.wavelength)}")
         print(f"    - Series: {len(combined_ds.series)}")
     except Exception as e:
-        print(f"  ✗ Failed to combine results: {e}")
+        print(f"  Failed to combine results: {e}")
 
     print("\n[5/5] Finished.")
 

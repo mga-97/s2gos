@@ -196,3 +196,6 @@ cython_debug/
 # Results
 *.zarr/
 example/*
+
+# Mesh
+*.ply
