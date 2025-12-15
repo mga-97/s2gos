@@ -83,7 +83,11 @@ IRR_SAMPLES = 4
 
 
 def get_geometry_and_time(ds: xr.Dataset, idx: int) -> dict:
-    """Extracts timestamp and converts HYPSTAR angles to Eradiate convention."""
+    """Extracts timestamp and converts HYPSTAR angles to Eradiate convention.
+
+    Returns both original HYPSTAR angles (for metadata) and Eradiate-converted
+    angles (for simulation configuration).
+    """
     vza_hyp = float(ds.viewing_zenith_angle.values[idx])
     vaa_hyp = float(ds.viewing_azimuth_angle.values[idx])
     sza_hyp = float(ds.solar_zenith_angle.values[idx])
@@ -91,6 +95,12 @@ def get_geometry_and_time(ds: xr.Dataset, idx: int) -> dict:
     ts_unix = int(ds.acquisition_time.values[idx])
 
     return {
+        # Original HYPSTAR angles (for output metadata)
+        "vza_hypstar": vza_hyp,
+        "vaa_hypstar": vaa_hyp,
+        "sza_hypstar": sza_hyp,
+        "saa_hypstar": saa_hyp,
+        # Eradiate-converted angles (for simulation config)
         "vza": 180.0 - vza_hyp,
         "vaa": (90.0 - vaa_hyp) % 360.0,
         "sza": sza_hyp,
@@ -135,7 +145,7 @@ def load_hcrf_zarr(zarr_path: Path, idx: int, geo: dict, series_id: int) -> xr.D
         series_id: Actual series_id from reference dataset
 
     Returns:
-        Dataset with reflectance and coordinate variables
+        Dataset with reflectance and coordinate variables using original HYPSTAR conventions
     """
     ds = xr.open_zarr(zarr_path)
 
@@ -145,12 +155,13 @@ def load_hcrf_zarr(zarr_path: Path, idx: int, geo: dict, series_id: int) -> xr.D
 
     ds = ds.rename({"w": "wavelength", "hcrf": "reflectance"})
 
+    # Use original HYPSTAR angles (not Eradiate-converted) for output compatibility
     ds = ds.assign_coords(
         {
-            "viewing_azimuth_angle": geo["vaa"],
-            "viewing_zenith_angle": geo["vza"],
-            "solar_azimuth_angle": geo["saa"],
-            "solar_zenith_angle": geo["sza"],
+            "viewing_azimuth_angle": geo["vaa_hypstar"],
+            "viewing_zenith_angle": geo["vza_hypstar"],
+            "solar_azimuth_angle": geo["saa_hypstar"],
+            "solar_zenith_angle": geo["sza_hypstar"],
             "acquisition_time": geo["dt"].timestamp(),
             "series_id": series_id,
         }
