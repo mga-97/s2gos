@@ -58,6 +58,7 @@ class SatelliteObservation(BaseModel):
         SatelliteInstrument,
         Field(default=SatelliteInstrument.CHIME, description="Satellite Instrument"),
     ]
+    spp: Annotated[int, Field(default=8, description="Sample Per Pixel")]
     # Not usable yet
     orthorectified: Annotated[
         bool,
@@ -84,6 +85,7 @@ class GroundObservation(BaseModel):
             description="Ground observation type",
         ),
     ]
+    spp: Annotated[int, Field(default=8, description="Sample Per Pixel")]
 
 
 class SurfaceL2Type(enum.StrEnum):
@@ -110,6 +112,7 @@ class SurfaceL2(BaseModel):
             description="If specified, informs the pixel footprint of the L2 product. Takes precedence over `footprint`.",
         ),
     ]
+    spp: Annotated[int, Field(default=8, description="Sample Per Pixel")]
 
 
 @registry.process(id="upscaling-demo")
