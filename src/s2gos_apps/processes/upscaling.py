@@ -87,7 +87,6 @@ class GroundObservation(BaseModel):
     ]
     spp: Annotated[int, Field(default=8, description="Sample Per Pixel")]
 
-
 class SurfaceL2Type(enum.StrEnum):
     HDRF = "HDRF"
     # BRF = "BRF"
@@ -114,6 +113,14 @@ class SurfaceL2(BaseModel):
     ]
     spp: Annotated[int, Field(default=8, description="Sample Per Pixel")]
 
+# This is what we should use before it is possible to use nested objects..
+class SimulationType(enum.StrEnum):
+    CHIME = "CHIME"
+    MSI = "MSI"
+    HYPSTAR_HCRF = "Hypstar HCRF"
+    CAMERA = "camera"
+    HDRF = "HDRF"
+
 
 @registry.process(id="upscaling-demo")
 def upscaling(
@@ -121,7 +128,7 @@ def upscaling(
     scene_name: Annotated[
         Locations, Field(default=Locations.PNP, description="Scene name.")
     ],
-    month: Annotated[str, Field(default="June", description="Month.")],
+    month: Annotated[Month, Field(default="June", description="Month.")],
     day: Annotated[int, Field(default=1, ge=1, le=30, description="Day of the month.")],
     hour: Annotated[
         float,
