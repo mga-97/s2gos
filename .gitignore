@@ -199,3 +199,8 @@ example/*
 
 # Mesh
 *.ply
+
+# Credentials and secrets
+.secrets.yaml
+.secrets.toml
+.secrets.*
