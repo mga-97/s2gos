@@ -3,7 +3,7 @@ import os
 from typing import Annotated
 
 from pydantic import Field
-from s2gos_utils.typing import PathLike
+from s2gos_utils.io import PathRef
 
 from s2gos_apps.registry import registry
 
@@ -15,14 +15,14 @@ def generation_configs(
     target_lon: Annotated[float, Field(..., description="Target's center longitude.")],
     target_size: Annotated[float, Field(..., description="Target's size in [km].")],
     config_output_dir: Annotated[
-        PathLike | None,
+        PathRef | None,
         Field(..., description="Generation configuration output directory."),
     ] = None,
     scene_output_dir: Annotated[
-        PathLike | None,
+        PathRef | None,
         Field(..., description="Scene description output directiory."),
     ] = None,
-) -> PathLike | None:
+) -> PathRef | None:
     """
     Create the scene confifuration corresponding the Gobabeb scene.
     """
@@ -36,7 +36,10 @@ def generation_configs(
         VegetationSpecies,
         XmlSceneConfig,
     )
-    from upath import UPath
+
+    # Enforce PathRef type
+    config_output_dir = PathRef(config_output_dir)
+    scene_output_dir = PathRef(scene_output_dir)
 
     print("\n")
     print("=" * 60)
@@ -48,7 +51,7 @@ def generation_configs(
         center_lat=target_lat,
         center_lon=target_lon,
         aoi_size_km=target_size,
-        output_dir=UPath("./gen_output")
+        output_dir=PathRef("./gen_output")
         if scene_output_dir is None
         else scene_output_dir,
         target_resolution_m=10.0,
@@ -130,7 +133,7 @@ def generation_configs(
         )
     )
     config.enable_hamster_albedo(
-        data_path=UPath("DOY196_Gobabeb.nc"),
+        data_path=PathRef("HAMSTER_Gobabeb/DOY196_Gobabeb.nc"),
         variable_name="albedo",
         fallback_on_error=True,
     )
@@ -154,14 +157,15 @@ def generation_configs(
         if not os.path.exists("./gen_config"):
             os.mkdir("./gen_config")
 
-        config_path = UPath(f"./gen_config/{config_filename}")
+        config_path = PathRef(f"./gen_config/{config_filename}")
     else:
-        if not os.path.exists(UPath(config_output_dir)):
-            os.mkdir(UPath(config_output_dir))
+        config_output_dir = PathRef(config_output_dir)
+        if not config_output_dir.upath.exists():
+            config_output_dir.upath.mkdir()
 
-        config_path = UPath(config_output_dir) / config_filename
+        config_path = config_output_dir / config_filename
 
-    config.to_json(config_path)
+    config.to_json(config_path.upath)
 
     return config_path
 
@@ -177,11 +181,13 @@ def simulation_configs(
     ],
     spp: Annotated[int, Field(..., description="Number of Monte Carlo samples.")] = 8,
     config_output_dir: Annotated[
-        PathLike | None,
+        PathRef | None,
         Field(..., description="Simulation configuration output directiory."),
     ] = None,
-) -> PathLike | None:
+) -> PathRef | None:
     from s2gos_apps.sim_util import simulation_config
+    
+    config_output_dir = PathRef(config_output_dir).upath
 
     config_path = simulation_config(
         scene_name,

@@ -4,7 +4,7 @@ import time
 from typing import Annotated
 
 from pydantic import BaseModel, Field
-from s2gos_utils.typing import PathLike
+from s2gos_utils.io import PathRef
 from upath import UPath
 
 from s2gos_apps.registry import registry
@@ -147,14 +147,14 @@ def upscaling(
     ],
     # Output Config
     config_output_dir: Annotated[
-        PathLike | None,
+        PathRef | None,
         Field(..., description="Generation configuration output directory."),
     ] = None,
     scene_output_dir: Annotated[
-        PathLike | None,
+        PathRef | None,
         Field(..., description="Scene description output directiory."),
     ] = None,
-) -> PathLike | None:
+) -> PathRef | None:
     """
     Create the scene confifuration corresponding the PNP scene.
     """

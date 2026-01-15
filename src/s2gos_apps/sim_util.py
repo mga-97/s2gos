@@ -14,7 +14,7 @@ from s2gos_simulator.config import (
     UAVInstrumentType,
     UAVSensor,
 )
-from s2gos_utils import PathLike, SceneDescription
+from s2gos_utils import PathRef, SceneDescription
 from upath import UPath
 
 
@@ -41,10 +41,12 @@ def simulation_config(
     target_size: float,
     gmt_hour: float,
     spp: int = 8,
-    config_output_dir: PathLike | None = None,
-) -> PathLike | None:
+    config_output_dir: UPath | None = None,
+) -> UPath | None:
     """Expand core parameters to a full simulation config."""
     # Step 3: Configure simulation with enhanced sensors
+
+    config_output_dir = UPath(config_output_dir)
 
     print("\n")
     print("=" * 60)
@@ -87,10 +89,10 @@ def simulation_config(
 
         config_path = UPath(f"./sim_config/{config_filename}")
     else:
-        if not os.path.exists(UPath(config_output_dir)):
-            os.mkdir(UPath(config_output_dir))
+        if not config_output_dir.exists():
+            config_output_dir.mkdir()
 
-        config_path = UPath(config_output_dir) / config_filename
+        config_path = config_output_dir / config_filename
 
     simulation_config.to_json(config_path)
     print("  Saved: simulation_config.json")
@@ -98,10 +100,10 @@ def simulation_config(
 
 
 def simulation_from_config(
-    scene_description_path: PathLike,
+    scene_description_path: UPath,
     config: SimulationConfig,
-    simulation_output_dir: PathLike | None = None,
-) -> PathLike | None:
+    simulation_output_dir: UPath | None = None,
+) -> UPath | None:
     print("\n")
     print("=" * 60)
     print("Simulating observation...")
