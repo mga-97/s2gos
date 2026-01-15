@@ -49,3 +49,10 @@ dev = { features = ["dev"], solve-group = "default" }
 
 [project.scripts]
 s2gos_apps = "s2gos_apps.cli:cli"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "packages/s2gos-utils",
+    "packages/s2gos-generator",
+    "packages/s2gos-simulator",
+]
