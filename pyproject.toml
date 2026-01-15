@@ -20,6 +20,8 @@ mkdocs = ">=1.5"
 snakeviz = ">=2.2.2,<3"
 procodile = ">=0.0.8,<0.0.9"
 s3fs = ">=2025.12.0,<2026"
+mkdocs-monorepo-plugin = ">=1.1.2,<2"
+mkdocs-material = ">=9.7.1,<10"
 
 [tool.pixi.pypi-dependencies]
 s2gos_utils = { path = "./packages/s2gos-utils", editable = true }

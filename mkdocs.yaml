@@ -1,0 +1,13 @@
+# /mkdocs.yml
+site_name: S2GOS-APPS
+
+theme:
+  name: material
+
+nav:
+  - packages:
+    - generator: '!include ./packages/s2gos-generator/mkdocs.yml'
+    - utils: '!include ./packages/s2gos-utils/mkdocs.yml'
+
+plugins:
+  - monorepo
