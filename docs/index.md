@@ -12,6 +12,14 @@ pixi install
 # dev
 pixi install -e dev
 ```
+You can then install the data needed by Eradiate by running.
+
+```bash
+pixi run apps-init
+```
+
+See the [Eradiate documentation](https://eradiate.readthedocs.io/en/stable/user_guide/config.html) on a guide on how to Configure the data install location.
+
 
 ## Configuration
 

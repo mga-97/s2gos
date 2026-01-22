@@ -34,6 +34,8 @@ memory-profiler = ">=0.61.0,<0.62"
 memray = ">=1.18.0,<2"
 
 [tool.pixi.tasks]
+eradiate-init = "eradiate data install core gecko"
+apps-init = { depends-on = ["eradiate-init"] }
 lab = "jupyter lab"
 test = "pytest"
 lint = "ruff check ."

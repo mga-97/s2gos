@@ -17,6 +17,13 @@ Install using pixi:
 pixi install
 ```
 
+You can then install the data needed by Eradiate by running.
+
+```bash
+pixi run apps-init
+```
+
+
 ## Project Structure
 
 ```
