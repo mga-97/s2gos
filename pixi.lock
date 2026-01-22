@@ -3627,7 +3627,7 @@ packages:
 - pypi: ./
   name: s2gos-apps
   version: 0.0.1
-  sha256: 94fcc961f59011f1addcdb3da5492e00543b0ca923b03a24b36b960ce9f6ca19
+  sha256: 2328bfe4ac2e13000e17e59cf002f7a4d6d6f7ae8c81c1f1796c9603cfbce7ec
   editable: true
 - pypi: ./packages/s2gos-generator
   name: s2gos-generator

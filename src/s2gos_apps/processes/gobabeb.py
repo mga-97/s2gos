@@ -133,7 +133,7 @@ def generation_configs(
         )
     )
     config.enable_hamster_albedo(
-        data_path=PathRef("HAMSTER_Gobabeb/DOY196_Gobabeb.nc"),
+        data_path=PathRef("DOY196_Gobabeb.nc"),
         variable_name="albedo",
         fallback_on_error=True,
     )
