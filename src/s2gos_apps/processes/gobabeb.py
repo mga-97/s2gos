@@ -76,7 +76,7 @@ def generation_configs(
                 VegetationSpecies(
                     name="trees",
                     asset_xml_paths=[
-                        "tls_tree_25.xml",
+                        "tls_tree_38.xml",
                         "tls_tree_71.xml",
                         # "tls_tree_165.xml"    ,
                     ],  # Single asset in list
