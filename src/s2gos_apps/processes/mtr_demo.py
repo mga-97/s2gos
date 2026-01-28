@@ -12,50 +12,48 @@ The demo showcases:
 """
 
 import enum
-import os
 from datetime import datetime
-from typing import Annotated, List, Tuple, Literal
+from typing import Annotated
 
 import numpy as np
-from pydantic import BaseModel, Field
+from pydantic import Field
 from s2gos_generator.core.config import (
-    create_scene_config,
+    AbsorptionDatabase,
     AerosolDataset,
     ExponentialDistribution,
+    MolecularAtmosphereConfig,
     ParticleLayerConfig,
+    ThermophysicalConfig,
     VegetationPlacementConfig,
     VegetationSpecies,
     XmlSceneConfig,
-    MolecularAtmosphereConfig,
-    ThermophysicalConfig,
-    AbsorptionDatabase,
+    create_scene_config,
 )
 from s2gos_simulator.config import (
-    create_chime_sensor,
-    SatelliteSensor,
-    SatellitePlatform,
-    SatelliteInstrument,
-    AngularViewing,
-    GroundSensor,
-    GroundInstrumentType,
     AngularFromOriginViewing,
-    UAVSensor,
-    UAVInstrumentType,
-    LookAtViewing,
-    SpectralResponse,
+    AngularViewing,
+    DirectionalIllumination,
+    GroundInstrumentType,
+    GroundSensor,
+    HDRFConfig,
+    HemisphericalMeasurementLocation,
     HypstarPostProcessingConfig,
     IrradianceConfig,
-    HemisphericalMeasurementLocation,
-    HDRFConfig,
+    SatelliteInstrument,
+    SatellitePlatform,
+    SatelliteSensor,
     SimulationConfig,
-    DirectionalIllumination,
+    SpectralResponse,
+    UAVInstrumentType,
+    UAVSensor,
+    create_chime_sensor,
 )
-from s2gos_utils.io import PathRef
 from s2gos_utils.coordinates import CoordinateSystem
+from s2gos_utils.io import PathRef
 from upath import UPath
 
-from s2gos_apps.registry import registry
 from s2gos_apps.gen_util import generation_from_config
+from s2gos_apps.registry import registry
 from s2gos_apps.sim_util_mtr import simulation_from_config
 
 # ============================================================================
@@ -179,7 +177,9 @@ def mtr_demo_generation(
     ] = None,
     scene_output_dir: Annotated[
         PathRef | None,
-        Field(..., description="Scene description and associated data output directory"),
+        Field(
+            ..., description="Scene description and associated data output directory"
+        ),
     ] = None,
 ) -> PathRef | None:
     """Generate 3D scene for MTR demo with seasonal variations.
@@ -218,11 +218,6 @@ def mtr_demo_generation(
     scene_name = f"pnp_mtr_demo_{month.value}_seed{random_seed}"
 
     # Create basic configuration
-    material_config_path = (
-        f"/home/gonzalezm/test/test2/s2gos-apps/packages/s2gos-generator/"
-        f"resources/data/{seasonal['material_config']}"
-    )
-
     config = create_scene_config(
         scene_name=scene_name,
         center_lat=PNP_LAT,
@@ -231,7 +226,7 @@ def mtr_demo_generation(
         output_dir=UPath("./gen_output")
         if scene_output_dir is None
         else scene_output_dir,
-        data_overrides={"material_config_path": material_config_path},
+        data_overrides={"material_config_path": seasonal["material_config"]},
         target_resolution_m=10.0,
         description=f"PNP MTR demo scene - {month.value}",
     )
@@ -286,13 +281,13 @@ def mtr_demo_generation(
     thermoprops = ThermophysicalConfig(
         identifier=None,
         thermoprops_file=UPath(
-            f"/home/gonzalezm/test/test2/s2gos-apps/example/PNP/"
-            f"timeseries_ms_{seasonal['thermoprops_date']}_v1.nc"
+            f"PNP/timeseries_ms_{seasonal['thermoprops_date']}_v1.nc"
         ),
     )
 
     molecular_config = MolecularAtmosphereConfig(
         thermoprops=thermoprops,
+        # thermoprops=ThermophysicalConfig(identifier="afgl_1986-us_standard"),
         absorption_database=AbsorptionDatabase.MONOTROPA,
         has_absorption=True,
         has_scattering=True,
@@ -519,7 +514,9 @@ def mtr_demo_simulation(
                     fwhm_vnir_nm=3.0,
                     fwhm_swir_nm=10.0,
                     spatial_averaging=True,
-                    real_reference_file="/home/gonzalezm/test/test2/s2gos-apps/hypstar_sim/HYPERNETS_L_GHNA_L2A_REF_20220517T0743_20230424T0625_v1.0.nc",
+                    real_reference_file=PathRef(
+                        "HYPERNETS_L_GHNA_L2A_REF_20220517T0743_20230424T0625_v1.0.nc"
+                    ),
                     wavelength_variable="wavelength",
                 ),
             )
@@ -552,8 +549,10 @@ def mtr_demo_simulation(
     elif observation == ObservationType.RGB_CAMERA:
         eradiate_mode = "mono"
         absorption_database = AbsorptionDatabase.GECKO
-        
-        camera_x, camera_y = coord_system.latlon_to_scene(PNP_LAT - 0.0010, PNP_LON + 0.0015)
+
+        camera_x, camera_y = coord_system.latlon_to_scene(
+            PNP_LAT - 0.0010, PNP_LON + 0.0015
+        )
 
         sensors.append(
             UAVSensor(
