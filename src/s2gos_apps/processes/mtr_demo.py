@@ -198,6 +198,20 @@ def mtr_demo_generation(
     random_seed: Annotated[
         int, Field(default=13, description="RNG seed for vegetation placement")
     ],
+    month_simulation: Annotated[
+            Month,
+            Field(
+                default=Month.DECEMBER,
+                description="Month for simulation (December=summer, June=winter)",
+            ),
+        ],
+        hour_utc: Annotated[
+            float, Field(..., description="Hour of observation in UTC (0-23)")
+        ],
+        observation: Annotated[
+            ObservationType,
+            Field(..., description="Observation type (enum value)"),
+        ],
     gen_config_output_dir: Annotated[
         PathRef | None,
         Field(..., description="Generation configuration output directory"),
@@ -208,20 +222,6 @@ def mtr_demo_generation(
             ..., description="Scene description and associated data output directory"
         ),
     ] = None,
-    month_simulation: Annotated[
-        Month,
-        Field(
-            default=Month.DECEMBER,
-            description="Month for simulation (December=summer, June=winter)",
-        ),
-    ],
-    hour_utc: Annotated[
-        float, Field(..., description="Hour of observation in UTC (0-23)")
-    ],
-    observation: Annotated[
-        ObservationType,
-        Field(..., description="Observation type (enum value)"),
-    ],
     spp: Annotated[
         int, Field(..., description="Samples per pixel for Monte Carlo simulation")
     ] = 8,
@@ -519,7 +519,7 @@ def mtr_demo_simulation(
         return None
 
     # Determine observation date (fixed to 21st of month)
-    seasonal = _get_seasonal_config(month)
+    seasonal = _get_seasonal_config(month_simulation)
     observation_date = datetime(
         2024,
         seasonal["observation_month"],
