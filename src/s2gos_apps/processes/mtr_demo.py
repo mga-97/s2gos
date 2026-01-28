@@ -62,8 +62,8 @@ from s2gos_apps.sim_util_mtr import simulation_from_config
 # Constants
 # ============================================================================
 
-PNP_LAT = -46.917
-PNP_LON = -72.450
+PNP_LAT = -46.9097
+PNP_LON = -72.4500
 PNP_SIZE_KM = 10.0
 TOWER_COORDS = (-220.0, 850.0)  # meters in scene coordinates
 coord_system = CoordinateSystem(PNP_LAT, PNP_LON)
@@ -458,6 +458,8 @@ def mtr_demo_simulation(
         0,
         0,
     )
+    eradiate_mode = "ckd"
+    absorption_database = AbsorptionDatabase.MONOTROPA
 
     # Build sensors and measurements based on observation type
     sensors = []
@@ -475,7 +477,7 @@ def mtr_demo_simulation(
         )
 
     elif observation == ObservationType.MSI:
-        bands = ["2", "3", "4", "8", "11", "12"]
+        bands = ["1", "2", "3", "4", "5", "6", "7", "8", "8a", "9", "10", "11", "12"]
         for band in bands:
             sensors.append(
                 SatelliteSensor(
@@ -548,7 +550,9 @@ def mtr_demo_simulation(
         )
 
     elif observation == ObservationType.RGB_CAMERA:
-        # Fixed RGB camera position: ~150m SE of tower, looking NW
+        eradiate_mode = "mono"
+        absorption_database = AbsorptionDatabase.GECKO
+        
         camera_x, camera_y = coord_system.latlon_to_scene(PNP_LAT - 0.0010, PNP_LON + 0.0015)
 
         sensors.append(
@@ -580,7 +584,7 @@ def mtr_demo_simulation(
         ),
         sensors=sensors,
         measurements=measurements,
-        backend_hints={"eradiate": {"mode": "ckd"}},
+        backend_hints={"eradiate": {"mode": eradiate_mode}},
     )
 
     # Save simulation configuration
