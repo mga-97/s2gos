@@ -38,6 +38,7 @@ from s2gos_simulator.config import (
     HemisphericalMeasurementLocation,
     HypstarPostProcessingConfig,
     IrradianceConfig,
+    LookAtViewing,
     SatelliteInstrument,
     SatellitePlatform,
     SatelliteSensor,
@@ -448,7 +449,6 @@ def mtr_demo_simulation(
         0,
     )
     eradiate_mode = "ckd"
-    absorption_database = AbsorptionDatabase.MONOTROPA
 
     # Build sensors and measurements based on observation type
     sensors = []
@@ -542,7 +542,6 @@ def mtr_demo_simulation(
 
     elif observation == ObservationType.RGB_CAMERA:
         eradiate_mode = "mono"
-        absorption_database = AbsorptionDatabase.GECKO
 
         camera_x, camera_y = coord_system.latlon_to_scene(
             PNP_LAT - 0.0010, PNP_LON + 0.0015
@@ -552,15 +551,15 @@ def mtr_demo_simulation(
             UAVSensor(
                 id="rgb_camera",
                 instrument=UAVInstrumentType.PERSPECTIVE_CAMERA,
-                viewing=AngularFromOriginViewing(
-                    origin=[camera_x, camera_y, 50.0],  # 50m height
-                    zenith=105.0,  # Looking slightly down
-                    azimuth=315.0,  # Looking northwest
+                viewing=LookAtViewing(
+                    origin=[-300, 300, 60.0],  # 50m height
+                    target=[0, 0, 15],
                     up=[0, 0, 1],
+                    relative_to_asset="only_tower_v0_1.xml",
                 ),
                 srf=SpectralResponse(type="delta", wavelengths=[440.0, 550.0, 660.0]),
                 fov=50.0,
-                resolution=[2000, 2000],
+                resolution=[1280, 720],
                 samples_per_pixel=spp,
             )
         )
