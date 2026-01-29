@@ -145,7 +145,7 @@ def _get_seasonal_config(month: Month) -> dict:
 # ============================================================================
 
 
-@registry.process(id="mtr_demo_generation")
+@registry.process(id="mtr_demo_generation", title="Scene Generation Demo")
 def mtr_demo_generation(
     month: Annotated[
         Month,
@@ -171,7 +171,7 @@ def mtr_demo_generation(
             title="Scene name",
         ),
     ] = None,
-) -> None:
+) -> str | None:
     """Generate 3D scene for MTR demo with seasonal variations.
 
     This processor:
@@ -189,8 +189,7 @@ def mtr_demo_generation(
     Args:
         month: Month for simulation (controls seasonal variations)
         random_seed: Random seed for reproducible vegetation placement
-        config_output_dir: Optional directory for generation config JSON
-        scene_output_dir: Optional directory for scene description YAML
+        scene_name: Name of scene
 
     Returns:
         Path to generated scene description YAML file, or None if validation fails
@@ -336,13 +335,15 @@ def mtr_demo_generation(
         print(f"Scene description: {scene_path}")
         print()
 
+    return scene_path
+
 
 # ============================================================================
 # Processor 2: Simulation
 # ============================================================================
 
 
-@registry.process(id="mtr_demo_simulation")
+@registry.process(id="mtr_demo_simulation", title="Simulation Demo")
 def mtr_demo_simulation(
     scene_name: Annotated[
         str,
@@ -404,13 +405,12 @@ def mtr_demo_simulation(
     - SATELLITE_HDRF: [PLACEHOLDER - To be implemented]
 
     Args:
-        scene_description_path: Path to scene YAML from generation step
+        scene_name: Name  of scene to be used
         month: Month for simulation (determines observation date)
         hour_utc: Hour of observation in UTC
         observation: Observation type configuration
         spp: Samples per pixel for Monte Carlo simulation
-        config_output_dir: Optional directory for simulation config JSON
-        simulation_output_dir: Optional directory for simulation outputs
+        sim_name: Name of simulation run
 
     Returns:
         Path to simulation output directory, or None if observation type
