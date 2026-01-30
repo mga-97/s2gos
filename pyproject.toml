@@ -24,6 +24,37 @@ mkdocs-monorepo-plugin = ">=1.1.2,<2"
 mkdocs-material = ">=9.7.1,<10"
 
 [tool.pixi.pypi-dependencies]
+# S2GOS_CONTROLLER/EOZILLA DEPS ------------------------------------------------
+# Combined sub-workspace dependencies to prevent our editable
+# PyPI dependencies (our project's sub-workspaces) to install
+# PyPI packages instead of using conda packages.
+click = "*"
+fastapi = "*"
+httpx = "*"
+pydantic = "*"
+pydantic-settings = "*"
+pyyaml = "*"
+typer = "*"
+uri-template = "*"
+uvicorn = "*"
+# IDE integration
+# pixi-pycharm = ">=0.0.8,<0.0.9"
+# GUI testing
+ipyleaflet = "*"
+ipywidgets = "*"
+ipywidgets_bokeh = "*"
+jupyter = "*"
+notebook = "*"
+panel = "*"
+watchfiles = "*"
+# # Use cases testing
+dask = "<2025"
+xarray = ">=2023.1.0,<2025"
+zarr = "<3"
+# # Needed in /tools
+datamodel-code-generator = "*"
+tomlkit = "*"  # to sync versions
+# ------------------------------------------------------------------------------
 s2gos_utils = { path = "./packages/s2gos-utils", editable = true }
 s2gos_generator = { path = "./packages/s2gos-generator", editable = true }
 s2gos_simulator = { path = "./packages/s2gos-simulator", editable = true }
