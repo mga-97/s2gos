@@ -33,17 +33,16 @@ FROM ubuntu:resolute
 WORKDIR /opt/pixi
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgomp1 \
+    libgomp1 vim nano \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build ./opt/pixi/.pixi/ /opt/pixi/.pixi/
 COPY --from=build ./opt/pixi/src /opt/pixi/src
 COPY --from=build ./opt/pixi/pyproject.toml /opt/pixi
 COPY --from=build ./opt/pixi/pixi.lock /opt/pixi
-COPY --from=build ./opt/pixi/packages /opt/pixi
+COPY --from=build ./opt/pixi/packages /opt/pixi/packages
 COPY --from=build ./opt/pixi/run_step.py  /opt/pixi/
 COPY --from=build ./opt/pixi/s2gos_settings.yaml  /opt/pixi/s2gos_settings.yaml
-#COPY --from=build  /root/.cache /root/.cache
 
 ENV PIXI_ENV="/opt/pixi/.pixi/envs/default"
 ENV LD_LIBRARY_PATH="$PIXI_ENV/lib:$LD_LIBRARY_PATH"
