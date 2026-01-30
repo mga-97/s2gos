@@ -18,45 +18,9 @@ from typing import Annotated
 from gavicore.models import InputDescription
 from procodile import additional_parameters
 from pydantic import Field
-from s2gos_generator.core.config import (
-    AbsorptionDatabase,
-    AerosolDataset,
-    ExponentialDistribution,
-    MolecularAtmosphereConfig,
-    ParticleLayerConfig,
-    ThermophysicalConfig,
-    VegetationPlacementConfig,
-    VegetationSpecies,
-    XmlSceneConfig,
-    create_scene_config,
-)
-from s2gos_simulator.config import (
-    AngularFromOriginViewing,
-    AngularViewing,
-    DirectionalIllumination,
-    GroundInstrumentType,
-    GroundSensor,
-    HDRFConfig,
-    HemisphericalMeasurementLocation,
-    HypstarPostProcessingConfig,
-    IrradianceConfig,
-    LookAtViewing,
-    SatelliteInstrument,
-    SatellitePlatform,
-    SatelliteSensor,
-    SimulationConfig,
-    SpectralResponse,
-    UAVInstrumentType,
-    UAVSensor,
-    create_chime_sensor,
-)
-from s2gos_utils.coordinates import CoordinateSystem
-from s2gos_utils.io import PathRef
-from upath import UPath
 
-from s2gos_apps.gen_util import generation_from_config
+from s2gos_utils.coordinates import CoordinateSystem
 from s2gos_apps.registry import registry
-from s2gos_apps.sim_util_mtr import simulation_from_config
 
 
 # noinspection PyTypeChecker
@@ -204,6 +168,23 @@ def mtr_demo_generation(
     Returns:
         Path to generated scene description YAML file, or None if validation fails
     """
+    from s2gos_generator.core.config import (
+        AbsorptionDatabase,
+        AerosolDataset,
+        ExponentialDistribution,
+        MolecularAtmosphereConfig,
+        ParticleLayerConfig,
+        ThermophysicalConfig,
+        VegetationPlacementConfig,
+        VegetationSpecies,
+        XmlSceneConfig,
+        create_scene_config,
+    )
+
+    from upath import UPath
+
+    from s2gos_apps.gen_util import generation_from_config
+
     print("\n")
     print("=" * 60)
     print("MTR DEMO - SCENE GENERATION")
@@ -426,6 +407,32 @@ def mtr_demo_simulation(
         Path to simulation output directory, or None if observation type
         is not yet implemented or simulation fails
     """
+    from s2gos_simulator.config import (
+        AngularFromOriginViewing,
+        AngularViewing,
+        DirectionalIllumination,
+        GroundInstrumentType,
+        GroundSensor,
+        HDRFConfig,
+        HemisphericalMeasurementLocation,
+        HypstarPostProcessingConfig,
+        IrradianceConfig,
+        LookAtViewing,
+        SatelliteInstrument,
+        SatellitePlatform,
+        SatelliteSensor,
+        SimulationConfig,
+        SpectralResponse,
+        UAVInstrumentType,
+        UAVSensor,
+        create_chime_sensor,
+    )
+
+    from s2gos_utils.io import PathRef
+    from upath import UPath
+
+    from s2gos_apps.sim_util_mtr import simulation_from_config
+
     print("\n")
     print("=" * 60)
     print("MTR DEMO - SIMULATION")
