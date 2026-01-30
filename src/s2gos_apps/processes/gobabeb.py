@@ -123,6 +123,7 @@ def generation_configs(
         XmlSceneConfig(
             xml_path="hypernets_mast_better.xml",
             base_coordinate=(target_lon, target_lat),
+            coord_type="geographic",
             elevation_offset=-0.1,
         )
     )
@@ -130,8 +131,10 @@ def generation_configs(
         XmlSceneConfig(
             xml_path="gobabeb_fence_custom.xml",
             base_coordinate=(15.1253501, -23.6011482),
+            coord_type="geographic",
         )
     )
+
     config.enable_hamster_albedo(
         data_path=PathRef("DOY196_Gobabeb.nc"),
         variable_name="albedo",
@@ -186,7 +189,7 @@ def simulation_configs(
     ] = None,
 ) -> PathRef | None:
     from s2gos_apps.sim_util import simulation_config
-    
+
     config_output_dir = PathRef(config_output_dir).upath
 
     config_path = simulation_config(
