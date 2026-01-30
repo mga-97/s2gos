@@ -15,9 +15,7 @@ import enum
 from datetime import datetime
 from typing import Annotated
 
-import numpy as np
 from pydantic import Field
-from procodile import FromMain
 from s2gos_generator.core.config import (
     AbsorptionDatabase,
     AerosolDataset,
@@ -40,6 +38,7 @@ from s2gos_simulator.config import (
     HemisphericalMeasurementLocation,
     HypstarPostProcessingConfig,
     IrradianceConfig,
+    LookAtViewing,
     SatelliteInstrument,
     SatellitePlatform,
     SatelliteSensor,
@@ -142,112 +141,44 @@ def _get_seasonal_config(month: Month) -> dict:
         }
 
 
-def _latlon_to_scene_coords(
-    lat: float, lon: float, scene_center_lat: float, scene_center_lon: float
-) -> tuple[float, float]:
-    """Convert geographic coordinates to scene-relative coordinates (meters)."""
-    # Flat earth approximation (valid for small areas)
-    meters_per_degree_lat = 111_000
-    meters_per_degree_lon = meters_per_degree_lat * np.cos(np.deg2rad(scene_center_lat))
-
-    x = (lon - scene_center_lon) * meters_per_degree_lon
-    y = (lat - scene_center_lat) * meters_per_degree_lat
-    return (x, y)
-
-
 # ============================================================================
 # Processor 1: Scene Generation
 # ============================================================================
 
 
-@registry.main(
-    id="mtr_demo/generation",
-    inputs={
-        "month": Field(title="Generation month"),
-        "random_seed": Field(title="Random seed"),
-        "gen_config_output_dir": Field(title="Generation config output directory"),
-        "scene_output_dir": Field(title="Scene output directory"),
-        "month_simulation": Field(title="Simulation month"),
-        "hour_utc": Field(title="Observation hour (UTC)"),
-        "observation": Field(title="Observation type"),
-        "spp": Field(title="Samples per pixel"),
-        "sim_config_output_dir": Field(title="Simulation config output directory"),
-        "simulation_output_dir": Field(title="Simulation output directory"),
-    },
-    outputs={
-        "gen_path": Field(
-            title="Scene description",
-            description="Path of generated scene description",
-        ),
-        "month_simulation": Field(title="Simulation month"),
-        "hour_utc": Field(title="Observation hour (UTC)"),
-        "observation": Field(title="Observation type"),
-        "spp": Field(title="Samples per pixel"),
-        "sim_config_output_dir": Field(title="Simulation config output directory"),
-        "simulation_output_dir": Field(title="Simulation output directory"),
-    },
-)
+@registry.process(id="mtr_demo_generation", title="Scene Generation Demo")
 def mtr_demo_generation(
     month: Annotated[
         Month,
         Field(
             default=Month.DECEMBER,
-            description="Month for generation (December=summer, June=winter in Patagonia)",
+            description="Month for simulation (December=summer, June=winter in Patagonia)",
+            title="Month",
         ),
     ],
     random_seed: Annotated[
-        int, Field(default=13, description="RNG seed for vegetation placement")
-    ],
-    month_simulation: Annotated[
-            Month,
-            Field(
-                default=Month.DECEMBER,
-                description="Month for simulation (December=summer, June=winter)",
-            ),
-        ],
-        hour_utc: Annotated[
-            float, Field(..., description="Hour of observation in UTC (0-23)")
-        ],
-        observation: Annotated[
-            ObservationType,
-            Field(..., description="Observation type (enum value)"),
-        ],
-    gen_config_output_dir: Annotated[
-        PathRef | None,
-        Field(..., description="Generation configuration output directory"),
-    ] = None,
-    scene_output_dir: Annotated[
-        PathRef | None,
+        int,
         Field(
-            ..., description="Scene description and associated data output directory"
+            default=13,
+            description="RNG seed for vegetation placement",
+            title="Vegetation RNG seed",
+        ),
+    ],
+    scene_name: Annotated[
+        str,
+        Field(
+            ...,
+            description="Name of scene",
+            title="Scene name",
         ),
     ] = None,
-    spp: Annotated[
-        int, Field(..., description="Samples per pixel for Monte Carlo simulation")
-    ] = 8,
-    sim_config_output_dir: Annotated[
-        PathRef | None,
-        Field(..., description="Simulation configuration output directory"),
-    ] = None,
-    simulation_output_dir: Annotated[
-        PathRef | None,
-        Field(..., description="Simulation results output directory"),
-    ] = None,
-) -> tuple[
-    PathRef | None,
-    Month,
-    float,
-    ObservationType,
-    int,
-    PathRef | None,
-    PathRef | None,
-]:
+) -> str | None:
     """Generate 3D scene for MTR demo with seasonal variations.
 
     This processor:
     1. Creates a scene generation configuration based on season/month
     2. Immediately runs the generation pipeline
-    3. Returns the generated scene description path plus simulation inputs
+    3. Returns path to the generated scene description YAML
 
     The scene includes:
     - PNP location with 10km target area
@@ -257,20 +188,12 @@ def mtr_demo_generation(
     - Optional snow cover (June only)
 
     Args:
-        month: Month for generation (controls seasonal variations)
+        month: Month for simulation (controls seasonal variations)
         random_seed: Random seed for reproducible vegetation placement
-        gen_config_output_dir: Optional directory for generation config JSON
-        scene_output_dir: Optional directory for scene description YAML
-        month_simulation: Month for simulation (December=summer, June=winter)
-        hour_utc: Hour of observation in UTC
-        observation: Observation type configuration
-        spp: Samples per pixel for Monte Carlo simulation
-        sim_config_output_dir: Optional directory for simulation config JSON
-        simulation_output_dir: Optional directory for simulation outputs
+        scene_name: Name of scene
 
     Returns:
-        Tuple containing the generated scene description path plus simulation inputs
-        forwarded to the downstream simulation step.
+        Path to generated scene description YAML file, or None if validation fails
     """
     print("\n")
     print("=" * 60)
@@ -281,18 +204,16 @@ def mtr_demo_generation(
     print()
 
     # Get seasonal configuration
-    seasonal = _get_seasonal_config(month_simulation)
-    scene_name = f"pnp_mtr_demo_{month.value}_seed{random_seed}"
-
+    seasonal = _get_seasonal_config(month)
+    gen_path = UPath(f"./{scene_name}/gen_output")
+    gen_path.mkdir(parents=True)
     # Create basic configuration
     config = create_scene_config(
         scene_name=scene_name,
         center_lat=PNP_LAT,
         center_lon=PNP_LON,
         aoi_size_km=PNP_SIZE_KM,
-        output_dir=UPath("./gen_output")
-        if scene_output_dir is None
-        else scene_output_dir,
+        output_dir=gen_path,
         data_overrides={"material_config_path": seasonal["material_config"]},
         target_resolution_m=10.0,
         description=f"PNP MTR demo scene - {month.value}",
@@ -398,15 +319,7 @@ def mtr_demo_generation(
 
     # Save generation config file
     config_filename = f"{config.scene_name}_gen_config.json"
-
-    if gen_config_output_dir is None:
-        config_dir = UPath("./gen_config")
-    else:
-        config_dir = UPath(gen_config_output_dir)
-
-    config_dir.mkdir(parents=True, exist_ok=True)
-    config_path = config_dir / config_filename
-
+    config_path = gen_path / config_filename
     config.to_json(config_path)
 
     # Run generation pipeline
@@ -423,15 +336,7 @@ def mtr_demo_generation(
         print(f"Scene description: {scene_path}")
         print()
 
-    return (
-        scene_path,
-        month_simulation,
-        hour_utc,
-        observation,
-        spp,
-        sim_config_output_dir,
-        simulation_output_dir,
-    )
+    return scene_path
 
 
 # ============================================================================
@@ -439,33 +344,53 @@ def mtr_demo_generation(
 # ============================================================================
 
 
-@mtr_demo_generation.step(
-    id="mtr_demo/simulation",
-    inputs={
-        "scene_description_path": FromMain(output="gen_path"),
-        "month_simulation": FromMain(output="month_simulation"),
-        "hour_utc": FromMain(output="hour_utc"),
-        "observation": FromMain(output="observation"),
-        "spp": FromMain(output="spp"),
-        "sim_config_output_dir": FromMain(output="sim_config_output_dir"),
-        "simulation_output_dir": FromMain(output="simulation_output_dir"),
-    },
-    outputs={
-        "simulation_path": Field(
-            title="Simulation output directory",
-            description="Path to the simulation output directory",
-        ),
-    },
-)
+@registry.process(id="mtr_demo_simulation", title="Simulation Demo")
 def mtr_demo_simulation(
-    scene_description_path: PathRef | None,
-    month_simulation: Month,
-    hour_utc: float,
-    observation: ObservationType,
-    spp: int,
-    sim_config_output_dir: PathRef | None,
-    simulation_output_dir: PathRef | None,
-) -> PathRef | None:
+    scene_name: Annotated[
+        str,
+        Field(
+            ...,
+            description="Scene to sue for simulation",
+            title="Scene name",
+        ),
+    ],
+    month: Annotated[
+        Month,
+        Field(
+            default=Month.DECEMBER,
+            description="Month for simulation (December=summer, June=winter)",
+            title="Month",
+        ),
+    ],
+    hour_utc: Annotated[
+        float,
+        Field(
+            ...,
+            description="Hour of observation in UTC (0-23) of the 21st of the chosen month, affects sun position ",
+            title="Hour (UTC)",
+        ),
+    ],
+    observation: Annotated[
+        ObservationType,
+        Field(..., description="Observation type (enum value)", title="Observation"),
+    ],
+    spp: Annotated[
+        int,
+        Field(
+            ...,
+            description="Samples per pixel for Monte Carlo simulation",
+            title="Samples per pixel",
+        ),
+    ] = 8,
+    sim_name: Annotated[
+        str,
+        Field(
+            ...,
+            description="Simulation run name",
+            title="Name of run",
+        ),
+    ] = None,
+) -> str | None:
     """Run simulation for MTR demo with configurable observation types.
 
     This processor:
@@ -481,13 +406,12 @@ def mtr_demo_simulation(
     - SATELLITE_HDRF: [PLACEHOLDER - To be implemented]
 
     Args:
-        scene_description_path: Path to scene YAML from generation step
-        month_simulation: Month for simulation (determines observation date)
+        scene_name: Name  of scene to be used
+        month: Month for simulation (determines observation date)
         hour_utc: Hour of observation in UTC
         observation: Observation type configuration
         spp: Samples per pixel for Monte Carlo simulation
-        sim_config_output_dir: Optional directory for simulation config JSON
-        simulation_output_dir: Optional directory for simulation outputs
+        sim_name: Name of simulation run
 
     Returns:
         Path to simulation output directory, or None if observation type
@@ -497,10 +421,6 @@ def mtr_demo_simulation(
     print("=" * 60)
     print("MTR DEMO - SIMULATION")
     print("=" * 60)
-
-    if scene_description_path is None:
-        print("No scene description produced; skipping simulation.")
-        return None
 
     print(f"Observation type: {observation}")
     print()
@@ -519,7 +439,7 @@ def mtr_demo_simulation(
         return None
 
     # Determine observation date (fixed to 21st of month)
-    seasonal = _get_seasonal_config(month_simulation)
+    seasonal = _get_seasonal_config(month)
     observation_date = datetime(
         2024,
         seasonal["observation_month"],
@@ -529,7 +449,6 @@ def mtr_demo_simulation(
         0,
     )
     eradiate_mode = "ckd"
-    absorption_database = AbsorptionDatabase.MONOTROPA
 
     # Build sensors and measurements based on observation type
     sensors = []
@@ -623,7 +542,6 @@ def mtr_demo_simulation(
 
     elif observation == ObservationType.RGB_CAMERA:
         eradiate_mode = "mono"
-        absorption_database = AbsorptionDatabase.GECKO
 
         camera_x, camera_y = coord_system.latlon_to_scene(
             PNP_LAT - 0.0010, PNP_LON + 0.0015
@@ -633,15 +551,15 @@ def mtr_demo_simulation(
             UAVSensor(
                 id="rgb_camera",
                 instrument=UAVInstrumentType.PERSPECTIVE_CAMERA,
-                viewing=AngularFromOriginViewing(
-                    origin=[camera_x, camera_y, 50.0],  # 50m height
-                    zenith=105.0,  # Looking slightly down
-                    azimuth=315.0,  # Looking northwest
+                viewing=LookAtViewing(
+                    origin=[-300, 300, 60.0],  # 50m height
+                    target=[0, 0, 15],
                     up=[0, 0, 1],
+                    relative_to_asset="only_tower_v0_1.xml",
                 ),
                 srf=SpectralResponse(type="delta", wavelengths=[440.0, 550.0, 660.0]),
                 fov=50.0,
-                resolution=[2000, 2000],
+                resolution=[1280, 720],
                 samples_per_pixel=spp,
             )
         )
@@ -664,13 +582,9 @@ def mtr_demo_simulation(
     # Save simulation configuration
     config_filename = f"mtr_demo_{observation}_sim_config.json"
 
-    if sim_config_output_dir is None:
-        config_dir = UPath("./sim_config")
-    else:
-        config_dir = UPath(sim_config_output_dir)
-
-    config_dir.mkdir(parents=True, exist_ok=True)
-    config_path = config_dir / config_filename
+    sim_output_dir = UPath(f"./f{scene_name}/sim_output")
+    sim_output_dir.mkdir(parents=True, exist_ok=True)
+    config_path = sim_output_dir / config_filename
 
     simulation_config.to_json(config_path)
 
@@ -680,9 +594,9 @@ def mtr_demo_simulation(
     print("=" * 60)
 
     output_path = simulation_from_config(
-        scene_description_path,
+        UPath(f"./{scene_name}/gen_output/{scene_name}/{scene_name}.yml"),
         simulation_config,
-        simulation_output_dir,
+        UPath(f"./{scene_name}/sim_output"),
     )
 
     if output_path:
@@ -692,4 +606,4 @@ def mtr_demo_simulation(
         print(f"Output directory: {output_path}")
         print()
 
-    return output_path
+    return str(output_path)
