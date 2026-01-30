@@ -18,7 +18,7 @@ pytest = ">=8"
 ruff = ">=0.2"
 mkdocs = ">=1.5"
 snakeviz = ">=2.2.2,<3"
-procodile = ">=0.0.8,<0.0.9"
+# procodile = ">=0.0.8,<0.0.9"
 s3fs = ">=2025.12.0,<2026"
 mkdocs-monorepo-plugin = ">=1.1.2,<2"
 mkdocs-material = ">=9.7.1,<10"
@@ -28,6 +28,20 @@ s2gos_utils = { path = "./packages/s2gos-utils", editable = true }
 s2gos_generator = { path = "./packages/s2gos-generator", editable = true }
 s2gos_simulator = { path = "./packages/s2gos-simulator", editable = true }
 s2gos_apps = { path = ".", editable = true }
+# I wished we could have "no-deps=true" here,
+# or even better "[tool.pixi.workspaces]".
+# See https://github.com/prefix-dev/pixi/issues/1417.
+s2gos-client = { path = "../s2gos-controller/s2gos-client", editable = true }
+s2gos-server = { path = "../s2gos-controller/s2gos-server", editable = true }
+#
+# Uncomment the following to allow using eozilla from sources
+# Note, using the wraptile server is for testing only
+#
+appligator = { path = "../eozilla/appligator", editable = true }
+cuiman = { path = "../eozilla/cuiman", editable = true }
+gavicore = { path = "../eozilla/gavicore", editable = true }
+procodile = { path = "../eozilla/procodile", editable = true }
+wraptile = { path = "../eozilla/wraptile", editable = true }
 
 [tool.pixi.feature.dev.pypi-dependencies]
 memory-profiler = ">=0.61.0,<0.62"
