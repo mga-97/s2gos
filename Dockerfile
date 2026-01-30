@@ -26,8 +26,7 @@ RUN pixi add --pypi "gavicore@git+https://github.com/eo-tools/eozilla.git#subdir
 RUN pixi add --pypi "wraptile@git+https://github.com/eo-tools/eozilla.git#subdirectory=wraptile"
 RUN pixi add --pypi "cuiman@git+https://github.com/eo-tools/eozilla.git#subdirectory=cuiman"
 RUN pixi add --pypi "appligator@git+https://github.com/eo-tools/eozilla.git#subdirectory=appligator"
-
-RUN ls -la /opt/pixi
+RUN pixi install
 
 #Stage 2 ---------------------------
 FROM ubuntu:resolute
@@ -44,6 +43,7 @@ COPY --from=build ./opt/pixi/pixi.lock /opt/pixi
 COPY --from=build ./opt/pixi/packages /opt/pixi
 COPY --from=build ./opt/pixi/run_step.py  /opt/pixi/
 COPY --from=build ./opt/pixi/s2gos_settings.yaml  /opt/pixi/s2gos_settings.yaml
+#COPY --from=build  /root/.cache /root/.cache
 
 ENV PIXI_ENV="/opt/pixi/.pixi/envs/default"
 ENV LD_LIBRARY_PATH="$PIXI_ENV/lib:$LD_LIBRARY_PATH"
