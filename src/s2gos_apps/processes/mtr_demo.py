@@ -18,10 +18,9 @@ from typing import Annotated
 from gavicore.models import InputDescription
 from procodile import additional_parameters
 from pydantic import Field
-
 from s2gos_utils.coordinates import CoordinateSystem
-from s2gos_apps.registry import registry
 
+from s2gos_apps.registry import registry
 
 # noinspection PyTypeChecker
 advanced_input = InputDescription(
@@ -56,7 +55,7 @@ class ObservationType(enum.StrEnum):
 
     CHIME = "chime"
     MSI = "msi"
-    SATELLITE_HDRF = "satellite_hdrf"
+    SATELLITE_PIXEL_HDRF = "satellite_pixel_hdrf"
     HYPSTAR = "hypstar"
     RGB_CAMERA = "rgb_camera"
 
@@ -180,7 +179,6 @@ def mtr_demo_generation(
         XmlSceneConfig,
         create_scene_config,
     )
-
     from upath import UPath
 
     from s2gos_apps.gen_util import generation_from_config
@@ -334,7 +332,9 @@ def mtr_demo_generation(
 # ============================================================================
 
 
-@registry.process(id="mtr_demo_simulation", title="Simulation Demo", inputs={"spp": advanced_input})
+@registry.process(
+    id="mtr_demo_simulation", title="Simulation Demo", inputs={"spp": advanced_input}
+)
 def mtr_demo_simulation(
     scene_name: Annotated[
         str,
@@ -393,7 +393,7 @@ def mtr_demo_simulation(
     - MSI: Sentinel-2 multispectral sensor (configurable bands)
     - HYPSTAR: Ground-based hyperspectral sensor with HCRF processing
     - RGB_CAMERA: Perspective camera viewing tower from configurable position
-    - SATELLITE_HDRF: [PLACEHOLDER - To be implemented]
+    - SATELLITE_PIXEL_HDRF: [PLACEHOLDER - To be implemented]
 
     Args:
         scene_name: Name  of scene to be used
@@ -418,6 +418,7 @@ def mtr_demo_simulation(
         HypstarPostProcessingConfig,
         IrradianceConfig,
         LookAtViewing,
+        PixelHDRFConfig,
         SatelliteInstrument,
         SatellitePlatform,
         SatelliteSensor,
@@ -427,7 +428,6 @@ def mtr_demo_simulation(
         UAVSensor,
         create_chime_sensor,
     )
-
     from s2gos_utils.io import PathRef
     from upath import UPath
 
@@ -440,19 +440,6 @@ def mtr_demo_simulation(
 
     print(f"Observation type: {observation}")
     print()
-
-    # Check for placeholder observation type
-    if observation == ObservationType.SATELLITE_HDRF:
-        print("=" * 60)
-        print("SATELLITE HDRF (3x3 pixels around tower)")
-        print("Status: TO BE IMPLEMENTED")
-        print()
-        print("This observation type requires implementation of:")
-        print("  - Pixel coordinate calculation for tower location")
-        print("  - 3x3 grid generation around tower pixel")
-        print("  - Multiple HDRF measurements creation")
-        print("=" * 60)
-        return None
 
     # Determine observation date (fixed to 21st of month)
     seasonal = _get_seasonal_config(month)
@@ -498,6 +485,40 @@ def mtr_demo_simulation(
                     samples_per_pixel=spp,
                 )
             )
+
+    elif observation == ObservationType.SATELLITE_PIXEL_HDRF:
+        sensors.append(
+            create_chime_sensor(
+                sensor_id="chime_for_pixel_hdrf",
+                target_center_lat=PNP_LAT,
+                target_center_lon=PNP_LON,
+                target_size_km=PNP_SIZE_KM,
+                zenith=3.0,
+                samples_per_pixel=spp,
+                for_reference_only=True,
+            )
+        )
+        # 3x3 around tower pixel
+        measurements.append(
+            PixelHDRFConfig(
+                id="chime_pixel_HDRF",
+                satellite_sensor_id="chime_for_pixel_hdrf",
+                pixel_indices=[
+                    # (137, 158),
+                    # (137, 159),
+                    # (137, 160),
+                    # (138, 158),
+                    (138, 159),
+                    # (138, 160),
+                    # (139, 158),
+                    # (139, 159),
+                    # (139, 160),
+                ],
+                height_offset_m=45,
+                samples_per_pixel=4,
+                srf=SpectralResponse(type="uniform", wmin=400, wmax=2500),
+            )
+        )
 
     elif observation == ObservationType.HYPSTAR:
         sensors.append(
@@ -565,20 +586,49 @@ def mtr_demo_simulation(
 
         sensors.append(
             UAVSensor(
-                id="rgb_camera",
+                id="nice_rgb_camera",
                 instrument=UAVInstrumentType.PERSPECTIVE_CAMERA,
                 viewing=LookAtViewing(
-                    origin=[-300, 300, 60.0],  # 50m height
+                    origin=[-430, 430, 70.0],  # 50m height
                     target=[0, 0, 15],
                     up=[0, 0, 1],
                     relative_to_asset="only_tower_v0_1.xml",
                 ),
                 srf=SpectralResponse(type="delta", wavelengths=[440.0, 550.0, 660.0]),
                 fov=50.0,
-                resolution=[1280, 720],
-                samples_per_pixel=spp,
+                resolution=[1920, 1080],
+                samples_per_pixel=64,
             )
         )
+
+        # multiplier = 1.0
+        # speed = 0.25
+        # acceleration = 1.05
+        # for i in range(100):
+        #     sensors.append(
+        #         UAVSensor(
+        #             id=f"rgb_camera_{i}",
+        #             instrument=UAVInstrumentType.PERSPECTIVE_CAMERA,
+        #             viewing=LookAtViewing(
+        #                 origin=[
+        #                     -20 * multiplier,
+        #                     20 * multiplier,
+        #                     20.0 * multiplier,
+        #                 ],  # 50m height
+        #                 target=[0, 0, 15],
+        #                 up=[0, 0, 1],
+        #                 relative_to_asset="only_tower_v0_1.xml",
+        #             ),
+        #             srf=SpectralResponse(
+        #                 type="delta", wavelengths=[440.0, 550.0, 660.0]
+        #             ),
+        #             fov=50.0,
+        #             resolution=[1280, 720],
+        #             samples_per_pixel=spp,
+        #         )
+        #     )
+        #     multiplier += speed
+        #     speed *= acceleration
 
     # Create simulation configuration
     simulation_config = SimulationConfig(
