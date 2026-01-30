@@ -118,7 +118,7 @@ def _get_seasonal_config(month: Month) -> dict:
 # ============================================================================
 
 
-@registry.process(id="mtr_demo_generation", title="Scene Generation Demo")
+@registry.process(id="mtr_demo_generation", title="Scene Generation Demo", inputs={"random_seed": advanced_input})
 def mtr_demo_generation(
     month: Annotated[
         Month,
@@ -182,7 +182,7 @@ def mtr_demo_generation(
     from upath import UPath
 
     from s2gos_apps.gen_util import generation_from_config
-
+    
     print("\n")
     print("=" * 60)
     print("MTR DEMO - SCENE GENERATION")
@@ -190,11 +190,11 @@ def mtr_demo_generation(
     print(f"Season: {month.value}")
     print(f"Random seed: {random_seed}")
     print()
-
+    
     # Get seasonal configuration
     seasonal = _get_seasonal_config(month)
     gen_path = UPath(f"./{scene_name}/gen_output")
-    gen_path.mkdir(parents=True)
+    gen_path.mkdir(parents=True, exist_ok=True)
     # Create basic configuration
     config = create_scene_config(
         scene_name=scene_name,
