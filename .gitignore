@@ -200,7 +200,11 @@ example/*
 # Mesh
 *.ply
 
-# Credentials and secrets
+# App-specific config data
+extra_data/
+s2gos_settings.*ml
+
+# App-specific credentials and secrets
 .secrets.yaml
 .secrets.toml
 .secrets.*

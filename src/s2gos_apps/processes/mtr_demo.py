@@ -15,6 +15,8 @@ import enum
 from datetime import datetime
 from typing import Annotated
 
+from gavicore.models import InputDescription
+from procodile import additional_parameters
 from pydantic import Field
 from s2gos_generator.core.config import (
     AbsorptionDatabase,
@@ -55,6 +57,13 @@ from upath import UPath
 from s2gos_apps.gen_util import generation_from_config
 from s2gos_apps.registry import registry
 from s2gos_apps.sim_util_mtr import simulation_from_config
+
+
+# noinspection PyTypeChecker
+advanced_input = InputDescription(
+    additionalParameters=additional_parameters({"level": "advanced"}),
+    schema={},
+)
 
 # ============================================================================
 # Constants
@@ -344,7 +353,7 @@ def mtr_demo_generation(
 # ============================================================================
 
 
-@registry.process(id="mtr_demo_simulation", title="Simulation Demo")
+@registry.process(id="mtr_demo_simulation", title="Simulation Demo", inputs={"spp": advanced_input})
 def mtr_demo_simulation(
     scene_name: Annotated[
         str,
